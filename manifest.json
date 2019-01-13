@@ -20,7 +20,7 @@
 "content_scripts": [
     {
     "matches": [
-      "*://sso.dtdjzx.gov.cn/sso/login*"],
+      "*://detail.tmall.com*"],
       "css":["js/skin/default/layer.css"],
     "js": ["js/jquery.js","js/login.js","js/layer.js"]
   },{

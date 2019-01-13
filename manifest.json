@@ -1,0 +1,50 @@
+{"name": "聚抢先",
+"version": "2.0",
+"manifest_version":2,
+"icons": { "48": "icon48.png" },
+"background" : {
+  "scripts": [
+    "js/jquery.js",
+    "js/bg.js"
+  ]
+},
+"description": "还在为聚划算开抢而苦苦等待嘛？还在为抢不到而顿足捶胸嘛？一款为抢聚划算而生的神奇来了。设定好您要抢的宝贝链接后，剩下的就交给我们啦！",
+"browser_action": {"default_icon": "icon19.png"},
+"web_accessible_resources": ["*"],
+"browser_action": {
+  "default_icon": "icon48.png",
+  "default_title": "事了拂衣去，深藏功与名"
+},
+  //让插件支持eval
+"content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
+"content_scripts": [
+    {
+    "matches": [
+      "*://detail.tmall.com*"],
+      "css":["js/skin/default/layer.css"],
+    "js": ["js/jquery.js","js/login.js","js/layer.js"]
+  },{
+    "matches": [
+      "*://xxjs.dtdjzx.gov.cn/monidati*","*://xxjs.dtdjzx.gov.cn/kaishijingsai*"],
+    "css":["js/skin/default/layer.css"],
+    "js": ["js/jquery.js","js/layer.js","js/visit.js"]
+  },{
+    "matches": ["*://*.dtdjzx.gov.cn/"],
+    "js": ["js/goon.js"]
+    },{
+    "matches": ["*://*.dtdjzx.gov.cn/member/"],
+    "js": ["js/jump.js"]
+  }
+  ],
+"permissions": [
+    "tabs",
+    "notifications",
+    "contextMenus",
+    "clipboardRead",
+    "clipboardWrite",
+    "idle",
+    "http://*/",
+    "https://*/",
+    "cookies"
+  ]
+}

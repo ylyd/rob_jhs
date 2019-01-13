@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$USER_HOME$/chrome-plugin-demo-master/.idea/chrome-plugin-demo-master.iml" filepath="$USER_HOME$/chrome-plugin-demo-master/.idea/chrome-plugin-demo-master.iml" />
+      <module fileurl="file://$USER_HOME$/dati/.idea/dati.iml" filepath="$USER_HOME$/dati/.idea/dati.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/rob_jhs.iml" filepath="$PROJECT_DIR$/.idea/rob_jhs.iml" />
+    </modules>
+  </component>
+</project>

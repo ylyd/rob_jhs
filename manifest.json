@@ -30,13 +30,7 @@
         "*://uland.taobao.com/coupon/edetail*"
       ],
       "js": ["js/jquery.js","js/coupon.js"]
-    },
-  {
-    "matches": [
-      "*://s.click.taobao.com/t*"
-    ],
-    "js": ["js/jquery.js","js/click.js"]
-  }
+    }
   ],
 "permissions": [
     "tabs",

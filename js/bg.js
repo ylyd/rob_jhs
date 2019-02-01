@@ -1,272 +1,162 @@
-var host = "nn.yishoudan.com", server = "http://" + host + "/index/jiexi";
-chrome.browserAction.onClicked.addListener(function (tab) {
-    window.open(chrome.extension.getURL('add.html'));
-});
-sessionStorage.setItem('background', 1);
-window.open(chrome.extension.getURL('add.html'));
-chrome.extension.onRequest.addListener(function (r, sender, sendResponse) {
-    switch (r.type) {
-        case 'getDaan':
-            if (r.data) {
-                var data = r.data;
-                db.transaction(function (tx) {
-                    tx.executeSql('SELECT rowid,A,B,C,D,daan FROM tiku WHERE ti =?', [data.ti], function (tx, results) {
-                        var len = results.rows.length, daan;
-                        if (len) {
-                            var item = results.rows.item(0);
+//webSocket
+var WS = null,Host = 'http://es.com',WSFD = 0;
+try {
+     WS = new ReconnectingWebSocket('ws://es.com:9501', null, {debug: true, reconnectInterval: 3000});
 
-                            daan = [];
-                            for (var j = 0; j < item.daan.length; j++) {
-                                var c = item.daan.charAt(j);
-                                // console.log(item[c],data['xuanxiang']);
-                                var cur = $.inArray(item[c], data['xuanxiang']);
-                                if (cur >= 0) {
-                                    daan.push(cur);
-                                }
+    WS.onopen = (evt) => {
+        console.log('websocket连接开启', evt);
+        //todo 发送用户信息
+    };
 
-                            }
-                            // console.log(daan,data['xuanxiang']);
-                            sendResponse({status: 1, msg: 'ok', data: daan});
-                        } else {
-                            console.log(data);
-                            notice({title: "没有找到此题", content: data.ti, img: chrome.runtime.getURL("img/error.jpg")});
-                            sendResponse({status: 0, msg: '没有找到【' + data.ti + '】本题'});
-                        }
+    WS.onclose = (evt) => {
+        //todo 告诉服务器关闭 不然造成fd的浪费
+        console.log('websocket连接关闭', evt);
+    };
 
-                    }, function (transaction, error) {
-                        console.log(data);
-                        sendResponse({status: 0, msg: '数据库错误', data: error});
-                    });
+    WS.onmessage = (evt) => {
+        console.log('websocket收到数据', evt);
+    };
 
-                });
-            }
-            break;
-        case 'getUserOne':
-            db.transaction(function (tx) {
-                var timeStamp = new Date(new Date().setHours(0, 0, 0, 0)) / 1000;
-                tx.executeSql('SELECT * FROM user WHERE lasttime <? limit 1', [timeStamp], function (tx, results) {
-                    var len = results.rows.length;
-                    if (len) {
-                        sendResponse({status: 1, msg: 'ok', data: results.rows.item(0)});
-                    } else {
-                        sendResponse({status: 0, msg: '今天的已经全部答题完毕'});
-                    }
-
-                }, function (transaction, error) {
-                    sendResponse({status: 0, msg: '数据库错误', data: error});
-                });
-
-            });
-            break;
-        case "setUserTime":
-            db.transaction(function (tx) {
-                var timeStamp = new Date(new Date().setHours(0, 0, 0, 0)) / 1000;
-                var id = sessionStorage.getItem("loginuid");
-                console.log("loginuid", id);
-                if (id) {
-                    tx.executeSql('update user SET lasttime=? WHERE rowid =?', [timeStamp, id],
-                        function (tx, results) {
-                            console.log("error", results);
-                            sendResponse({status: 1, msg: 'ok', data: results});
-
-                        }, function (transaction, error) {
-                            console.log("error", error, transaction);
-                            sendResponse({status: 0, msg: 'ok', data: error});
-                        });
-                }
-                var timeer = r.timeer;
-                var fen = parseInt(timeer / 60000);
-                var miao = parseInt((timeer % 60000) / 1000);
-                timeer = fen + "分" + miao + "秒";
-                notice({
-                    title: "答题完毕用时 " + timeer,
-                    content: '在' + timeer + '之后进行下一个用户答题',
-                    img: chrome.runtime.getURL("img/timg.jpg")
-                });
-            });
-            break;
-        case "nextMsg":
-            notice({title: "答题完毕请处理下一个用户", content: '登录下一个用户进行答题', img: chrome.runtime.getURL("img/next.jpg")});
-            sendResponse(1);
-            break;
-        case "userLogin":
-            sessionStorage.setItem("loginuid", r.id);
-            break;
-        case "getLogin":
-            sendResponse(sessionStorage.getItem("loginuid"));
-            break;
-        case "addTiku":
-            var data = r.data;
-            db.transaction(function (tx) {
-                console.log("创建tiku");
-                tx.executeSql('DROP TABLE IF EXISTS tiku', [], function (transaction) {
-
-                });
-                tx.executeSql('CREATE TABLE IF NOT EXISTS tiku (id unique, ti,A,B,C,D,daan)', [], function (tx) {
-                    console.log("创建新数据库成功");
-                    for (var i in data) {
-                        tx.executeSql('INSERT INTO tiku (id, ti,A,B,C,D,daan) VALUES (?,?,?,?,?,?,?)', [i, data[i].ti, data[i].A, data[i].B, data[i].C, data[i].D, data[i].daan], function (transaction) {
-                            console.log("插入成功");
-                        }, function (transaction, error) {
-                            console.log(error);
-                        });
-                    }
-                }, function (transaction, error) {
-                    console.log(error);
-                });
-                sendResponse(1);
-            });
-            break;
-        case "addUser":
-            var data = r.data;
-            db.transaction(function (tx) {
-                tx.executeSql('DROP TABLE IF EXISTS user');
-                var timestamp = 0;
-                tx.executeSql('CREATE TABLE IF NOT EXISTS user (id unique, name,sex,username,password,lasttime)', [], function (tx) {
-                    console.log("创建新数据库成功");
-                    for (var i in data) {
-                        tx.executeSql('INSERT INTO user (id,name,sex,username,password,lasttime) VALUES (?,?,?,?,?,?)', [data[i].id * 1 + 1, data[i].name, data[i].sex
-                            , data[i].username, data[i].password, timestamp], function (transaction) {
-                            console.log("插入成功");
-                        }, function (transaction, error) {
-                            console.log(error);
-                        });
-                    }
-                }, function (transaction, error) {
-                    console.log(error);
-                });
-                sendResponse(1);
-            });
-            break;
-
-    }
-});
-var notice = function (data) {
-    if (chrome.notifications) {
-        var clickUrl = '';
-        var stag = '';
-        var items = [{
-            title: '',
-            message: data.content
-        }];
-        var buttons = [{
-            title: data.title + "--开始时间：" + (data['start_time'] ? data['start_time'] : ""),
-            iconUrl: chrome.runtime.getURL("icon19.png")
-        }];
-
-        var options = {
-            type: "list",
-            title: data.title, //商品标题
-            message: data.content,
-            iconUrl: data.img,
-            items: items,
-            buttons: buttons
-        };
-        var NotifyId = "item" + Math.ceil(Math.random() * 100);
-        chrome.notifications.create(NotifyId, options, function (a) {
-            stag = a;
-        });
-        chrome.notifications.onButtonClicked.addListener(function (a, c) {
-
-        });
-        chrome.notifications.onClicked.addListener(function (a) {
-            // stag == a && chrome.tabs.create({url:clickUrl}, function(){});
-        });
-        chrome.notifications.clear(NotifyId, function () {
-        }); //自内存清除弹窗提示
-    } else {
-        var show = window.webkitNotifications.createNotification(chrome.runtime.getURL("icon19.png"), data.content, "");
-        show.onclick = function () {
-            window.open(clickUrl);
-        }
-    }
+    WS.onerror = (evt, e) => {
+        //todo 通过ajax 告诉 服务器杀掉fd
+        console.log('websocket发生错误', evt, e);
+    };
+} catch (e) {
+    console.log('websocket连接失败', e);
 }
 
-var db = {
-    dbname: "tiku",
-    ver: '1.0',
-    desc: '答题题库',
-    size: 5 * 1024 * 1024,
-    open: function () {
-        db = openDatabase(this.dbname, this.ver, this.desc, this.size);
+/**
+ * 工具类
+ * @type {{wsSend: Util.wsSend}}
+ */
+var Util = {
+    /**
+     * websocket发送数据
+     * @param data {url:{class:'',action:''},data:data}
+     */
+    wsSend:function (data) {
+        //判断ws是否连接ok
+        if (!WS) {
+            console.log('WS对象为空');
+            return ;
+        }
+        WS.send(JSON.stringify(data));
+    },
+    getGY:function (data,async) {
+        $.ajax({
+            url:Host+'/coupon/gy',
+            method:'POST',
+            data:data,
+            async:async,
+            dataType:'json',
+            timeout:1000,
+            success:function (d) {
+                if (d != -1 && d.item_url){
+                    sessionStorage[data.num_iid] = JSON.stringify(d);
+                }
+            },
+            error:function (xhr,status,error) {
+                console,log("错误提示： " + xhr.status + " " + xhr.statusText);
+            },
+            complete : function(XMLHttpRequest,status){ //请求完成后最终执行参数
+                if(status == 'timeout'){
+                    console.log("请求超时，请稍后再试！",'','error');
+                }
+            }
+        });
+    },
+    //更新优惠券
+    upCoupon:function (data) {
+        $.ajax({
+            url:Host+'/coupon/update',
+            method:'POST',
+            data:data,
+            dataType:'json',
+            timeout:1000
+        });
     }
 };
-db.open();
-
-
-var getFromNte = function () {
-    $.getJSON(server + "/getTiku", function (d) {
-        if (d.status == 1) {
-            addTiku(d.data);
-        } else {
-            layer.msg();
-        }
-    });
-};
-$(function () {
-
-    $("#submit").on("click", function () {
-        var data = [], count = 0;
-        $("#container").children().each(function (i, v) {
-            var o = $(v), text = o.text();
-            text = $.trim(text);
-            if (!data[count]) data[count] = {};
-            if (/^\d{1,}.*选题(.*)/.test(text)) {
-                var reg = /^\d{1,}.*选题(.*)/;
-                text = text.match(reg);
-                if (text && text[1]) data[count]['ti'] = text[1];
-            } else if (/^([A-Z]{1,})、(.*)/.test(text)) {
-                var reg = /^([A-Z]{1,})、(.*)/;
-                text = text.match(reg);
-
-                if (text && text[1] && text[2]) data[count][text[1]] = text[2];
-            } else if (/^参考答案：([A-Z]{1,})/.test(text)) {
-                var reg = /^参考答案：([A-Z]{1,})/;
-                text = text.match(reg);
-                if (text && text[1]) data[count++]['daan'] = text[1];
+/**
+ * 与conten_script通信 与服务端通信
+ */
+chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
+    console.log(r);
+    switch (r.type) {
+        //解析click url 跳转后的302 location
+        case 'getClickUrl':
+            if (sessionStorage[r.data.num_iid]) {
+                return;
             }
-
-
-        });
-        addTiku(data);
-    });
-
-    $("#addUser").on("click", function () {
-        var data = [], count = 0;
-        $("#container tr").each(function (i, v) {
-            var o = $(v);
-            var obj = o.find("td");
-            data[count++] = {
-                id: i,
-                name: $.trim(obj.eq(1).text()),
-                sex: $.trim(obj.eq(2).text()),
-                username: $.trim(obj.eq(7).text()),
-                password: $.trim(obj.eq(8).text())
-            };
-        });
-        console.log(data);
-        db.transaction(function (tx) {
-            tx.executeSql('DROP TABLE IF EXISTS user');
-            var timestamp = 0;
-            tx.executeSql('CREATE TABLE IF NOT EXISTS user (id unique, name,sex,username,password,lasttime)', [], function (tx) {
-                console.log("创建新数据库成功");
-                for (var i in data) {
-                    tx.executeSql('INSERT INTO user (id,name,sex,username,password,lasttime) VALUES (?,?,?,?,?,?)', [data[i].id * 1 + 1, data[i].name, data[i].sex
-                        , data[i].username, data[i].password, timestamp], function (transaction) {
-                        console.log("插入成功");
-                    }, function (transaction, error) {
-                        console.log(error);
-                    });
-                }
-            }, function (transaction, error) {
-                console.log(error);
-            });
-            layer.msg("创建用户成功");
-        });
-        // addUser(data);
-    });
-
-    $("#getnet").on("click", function () {
-        getFromNte();
-    });
+            Util.getGY(r.data, true);
+           break;
+    }
 });
+// web请求监听，最后一个参数表示阻塞式，需单独声明权限：webRequestBlocking ["<all_urls>"]
+chrome.webRequest.onBeforeRequest.addListener(details => {
+    console.log(details);
+    //优惠券页面
+    if (details.url.indexOf('acs.m.taobao.com/h5/mtop.alimama.union.hsf.coupon.get') != -1) {
+        $.ajax({
+            url:details.url,
+            method:'GET',
+            dataType:'text',
+            timeout:1000,
+            success:function (d) {
+                if (d.indexOf('mtopjsonp2(')!=-1){
+                    d = JSON.parse(d.slice(d.indexOf('(') + 1,-1));
+                    if (d.ret[0] == 'SUCCESS::调用成功' && d.data && d.data.success) {
+                        d = d.data.result;
+                        var id = d.item.itemId;
+                        sessionStorage['coupon_'+id] = d.amount;
+                        //上传优惠券 无论失效与否
+                        Util.upCoupon(d);
+                    }
+                }
+            },
+            error:function (xhr,status,error) {
+                console.log("错误提示： " + xhr.status + " " + xhr.statusText,error);
+            }
+        });
+    } else if(details.type == 'main_frame') {
+        //宝贝页面 先获取商品id
+        var id = details.url.match(/[\?&]id=(\d{8,15})/);
+        if(id) {
+            id = id[1];
+        }
+        //判断跳转详情页面时不是自己的pid 就替换掉
+        if (details.url.indexOf('mm_119948269') == -1) {
+
+            if (sessionStorage['tab_'+id] && sessionStorage['tab_'+id] == details.tabId) {
+                //表示刷新当前页面 并且 已经跳转过高佣连接而来
+                return;
+            }
+            //如果没有商品id做key的session 表示没有生成高佣跳转链接
+            if (!sessionStorage[id]) {
+                //以同步的方式生成高佣后再继续往下执行
+                Util.getGY({num_iid:id}, false);
+                if (!sessionStorage[id]) {
+                    return;
+                }
+            }
+            //json 解析出高佣链接item_url
+            var data = JSON.parse(sessionStorage[id]);
+            if (data && data.item_url) {
+                //暂存之前过来的原链接 在高佣链接跳转后再劫持 改为此链接 之后删除
+                sessionStorage['src_url_'+id] = details.url;
+                //记录好高佣跳转成功的tabid 方便用户刷新时 不在跳转高佣链接
+                sessionStorage['tab_'+id]=details.tabId;
+                return {redirectUrl: data.item_url};
+            }
+        } else if(sessionStorage['tab_'+id]) {
+            //这里处理得是用户从高佣跳转后造成的页面跳转失败问题
+            var url = sessionStorage['src_url_'+id];
+            sessionStorage.removeItem('src_url_'+id);
+            return {redirectUrl: url};
+        }
+    }
+
+}, {
+    urls: ["*://detail.tmall.com/item.htm*","*://item.taobao.com/item.htm*",
+    "*://acs.m.taobao.com/h5/mtop.alimama.union.hsf.coupon.get*"],
+    types:["main_frame","other","script"]
+}, ["blocking"]);

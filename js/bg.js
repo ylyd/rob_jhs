@@ -1,11 +1,14 @@
 //webSocket
-var WS = null,Host = 'http://es.com',WSFD = 0;
+var WS = null,Host = 'http://es.com',WSFD = 0,
+    //上次连接的旧的websocket fd
+    WS_OLD_FD = localStorage['WS_OLD_FD'] ? localStorage['WS_OLD_FD'] : 0;
 try {
-     WS = new ReconnectingWebSocket('ws://es.com:9501', null, {debug: true, reconnectInterval: 3000});
+     WS = new ReconnectingWebSocket('ws://es.com:9501', null, {debug: true, reconnectInterval: 300000});
 
     WS.onopen = (evt) => {
         console.log('websocket连接开启', evt);
         //todo 发送用户信息
+       Util.wsSend({'class':'User',action:'getFd',content:{old_fd:WS_OLD_FD}});
     };
 
     WS.onclose = (evt) => {
@@ -15,12 +18,25 @@ try {
 
     WS.onmessage = (evt) => {
         console.log('websocket收到数据', evt);
+        let data = JSON.parse(evt.data);
+        switch (data.type) {
+            case 'set_fd':
+                localStorage['WS_OLD_FD'] = data.fd;
+                break;
+            case 'notice':
+                Util.notice(data.data);
+                break;
+        }
     };
 
     WS.onerror = (evt, e) => {
         //todo 通过ajax 告诉 服务器杀掉fd
         console.log('websocket发生错误', evt, e);
     };
+    //监听窗口关闭事件，当窗口关闭时，主动去关闭websocket连接，防止连接还没断开就关闭窗口，server端会抛异常。
+    window.onbeforeunload = function () {
+        if (WS_OLD_FD) WS.close();
+    }
 } catch (e) {
     console.log('websocket连接失败', e);
 }
@@ -32,7 +48,7 @@ try {
 var Util = {
     /**
      * websocket发送数据
-     * @param data {url:{class:'',action:''},data:data}
+     * @param data {class:'',action:'',content:data}
      */
     wsSend:function (data) {
         //判断ws是否连接ok
@@ -74,9 +90,44 @@ var Util = {
             dataType:'json',
             timeout:1000
         });
+    },
+    noticeUrl:null,
+    notice : function (data) {
+        if (chrome.notifications)  {
+
+            var NotifyId = "item"+Math.ceil(Math.random()*100);
+            chrome.notifications.create(NotifyId, data.option , function (NotifyId) {
+                Util.noticeUrl = data.url;
+            });
+            // chrome.notifications.clear(NotifyId, function(wasCleared){
+            //     console.log('通知关闭');
+            //     if (wasCleared) {
+            //         localStorage.removeItem(NotifyId);
+            //     }
+            // }); //自内存清除弹窗提示
+        } else {
+            console.log("open show");
+            var show=window.webkitNotifications.createNotification(chrome.runtime.getURL("icon19.png"),data.content, "" );
+            show.onclick = function() {
+                window.open(data.url);
+            }
+        }
     }
 };
-/**
+
+if (chrome.notifications) {
+    chrome.notifications.onButtonClicked.addListener(function(NotifyId,c){
+        chrome.tabs.create({url:Util.noticeUrl}, function(){
+            console.log("todo in tab");
+        });
+    });
+    chrome.notifications.onClicked.addListener(function(NotifyId) {
+        chrome.tabs.create({url:Util.noticeUrl}, function(){
+            console.log("todo in tab");
+        });
+    });
+}
+    /**
  * 与conten_script通信 与服务端通信
  */
 chrome.extension.onRequest.addListener(function(r, sender, sendResponse){

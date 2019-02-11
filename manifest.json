@@ -23,6 +23,7 @@
         "*://detail.tmall.com/*","*://chaoshi.detail.tmall.com/*","*://detail.m.tmall.com/*","*://item.taobao.com/item.htm*",
         "*://h5.m.taobao.com/awp/core/detail.htm*"
       ],
+      "css": ["css/content.css"],
       "js": ["js/jquery.js","js/content.js"]
     },
     {

@@ -112,6 +112,10 @@ var Util = {
                 window.open(data.url);
             }
         }
+    },
+    //获取用户未抢购成功的商品列表
+    getMyQgItem:function () {
+
     }
 };
 
@@ -140,6 +144,10 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
             }
             Util.getGY(r.data, true);
            break;
+           //获取当前商品是否在抢购列表中
+        case 'getLocalQgItemById':
+            sendResponse(localStorage['qg_'+r.data.id]);
+            break;
     }
 });
 // web请求监听，最后一个参数表示阻塞式，需单独声明权限：webRequestBlocking ["<all_urls>"]
@@ -198,7 +206,7 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
                 sessionStorage['tab_'+id]=details.tabId;
                 return {redirectUrl: data.item_url};
             }
-        } else if(sessionStorage['tab_'+id]) {
+        } else if(sessionStorage['tab_'+id] && details.tabId == sessionStorage['tab_'+id]) {
             //这里处理得是用户从高佣跳转后造成的页面跳转失败问题
             var url = sessionStorage['src_url_'+id];
             sessionStorage.removeItem('src_url_'+id);

@@ -149,13 +149,30 @@
     100% { border:1px dashed  #749a02; shadow: 0 0 9px #333; }
 }
 #J_ButtonWaitWrap {margin-bottom: 35px;}
-#J_ButtonWaitWrap #qg_down_time{padding: 10px 0px;float: left;color: #FF0036;
+#J_ButtonWaitWrap .qg-l-box{float: left;display: inline-block;position: relative;}
+#J_ButtonWaitWrap #qg_down_time{color: #FF0036;
     font-weight: bolder;
-    font-family: Arial;}
+    font-family: Arial;display: block;}
 #J_ButtonWaitWrap #kaiqiang_btn{
     float: right;background: #2da77a;color: #ffffff;padding: 10px 25px;
     cursor: pointer; text-decoration:none;
 }
+#J_ButtonWaitWrap #kaiqiang_btn.qg-red-btn{background-color:#ff0036;}
 .place-select-prop{animation:greenPulse 2s ease infinite;-webkit-animation:greenPulse 2s ease infinite;}
 #qg_info_alert {margin-bottom: 10px;display: none;}
 .tb-clear{clear: both}
+.piaoyi{position: fixed;z-index: 999999999;right: 1000px;top:300px;width: 418px;
+    height: 418px;}
+#qg_setting{cursor: pointer; text-decoration:none; color: #280;font-weight: bolder;}
+#qg_form{position: absolute;top: 100%;display: none;left: 0px;background: #fff;
+    border: 1px solid #e0e0e0 \9;
+    border-top: 0 \9;padding: 25px 10px 35px 20px;
+    z-index: 9999;
+    -webkit-box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);width: 560px;}
+#qg_form ul.qg-frist-ul{padding-right: 50px; display: inline-block;
+    border-right: 1px solid rgb(204, 205, 207); }
+#qg_form ul.qg-frist-ul li {margin-bottom: 10px;width: 215px;}
+#qg_form .qg-form-shuoming{display: block;margin-top:30px;  }
+#qg_form .qg-form-shuoming li{line-height: 25px;color: #666666;}
+.qg-gzh{float: right;width: 230px;height: 230px;    margin-right: 39px; text-align: center;color: #280;}

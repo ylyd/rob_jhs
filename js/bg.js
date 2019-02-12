@@ -46,6 +46,62 @@ try {
  * @type {{wsSend: Util.wsSend}}
  */
 var Util = {
+    systemTime : (new Date()).getTime(),
+    qgPageOpenOnce:false,
+    //抢购队列
+    qgList:{},
+    //定时检查抢购队列
+    checkQg : function(){
+        for(let stime in Util.qgList) {
+            let cha = stime*1 - Util.systemTime;
+            let nowStimeList = Util.qgList[stime];
+
+            //准备打开页面抢购
+            if (cha < 1000) {
+                for (let num_iid in nowStimeList) {
+                    if (!nowStimeList[num_iid]['tab']) {
+                        continue;
+                    }
+                    chrome.tabs.create({
+                        url:nowStimeList[num_iid].url.str_replace('detail.','detail.m.'),
+                        selected:false
+                    }, tab => {
+                        nowStimeList[num_iid]['tab'] = tab.id;
+                    });
+                }
+            } else if (cha < 120000) {
+                //小于两分钟 查看是否有高佣连接 没有的话 先申请
+                for (let num_iid in nowStimeList) {
+                    if (!sessionStorage[num_iid]) {
+                        Util.getGY({num_iid:num_iid}, true);
+                    }
+                }
+            }
+
+            //如果从来没有打开过任何聚划算详情页 来处理系统时间 那么就打开一个
+            if(!Util.qgPageOpenOnce) {
+               let keyArr = Object.keys(nowStimeList);
+               if (keyArr.length > 0) {
+                   chrome.tabs.create({
+                       url:nowStimeList[keyArr[0]].url,
+                       selected:false
+                   });
+                   Util.qgPageOpenOnce = true;
+               }
+            }
+
+        }
+        setTimeout(Util.checkQg,100);
+    },
+    delQgList:function(id){
+        let qgInfo = localStorage['qg_'+id];
+        localStorage.removeItem('qg_'+id);
+        //删除变量队列
+        if (qgInfo) {
+            qgInfo = JSON.parse(qgInfo);
+            delete Util.qgList[qgInfo.startTime][id];
+        }
+    },
     /**
      * websocket发送数据
      * @param data {class:'',action:'',content:data}
@@ -72,7 +128,7 @@ var Util = {
                 }
             },
             error:function (xhr,status,error) {
-                console,log("错误提示： " + xhr.status + " " + xhr.statusText);
+                console.log("错误提示： " + xhr.status + " " + xhr.statusText);
             },
             complete : function(XMLHttpRequest,status){ //请求完成后最终执行参数
                 if(status == 'timeout'){
@@ -115,7 +171,11 @@ var Util = {
     },
     //获取用户未抢购成功的商品列表
     getMyQgItem:function () {
-
+        Util.checkQg();
+    },
+    setBadge:function (txt) {
+        chrome.browserAction.setBadgeText({text: txt+''});
+        chrome.browserAction.setBadgeBackgroundColor({color: [255, 0, 0, 255]});
     }
 };
 
@@ -146,7 +206,92 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
            break;
            //获取当前商品是否在抢购列表中
         case 'getLocalQgItemById':
-            sendResponse(localStorage['qg_'+r.data.id]);
+            sendResponse(localStorage['qg_'+r.id]);
+            break;
+            //加入抢购队列
+        case 'addQgList':
+            $.ajax({
+                url:Host+'/coupon/addQgList',
+                method:'POST',
+                data:{qgInfo:r.qgInfo,itemInfo:r.itemInfo},
+                dataType:'json',
+                timeout:1000,
+                success:function (d) {
+                    if (d.status != -1){
+                        localStorage['qg_'+r.id] = JSON.stringify(r.qgInfo);
+                        Util.setBadge(d.data);
+                        //加入变量队列
+                        Util.qgList[r.qgInfo.startTime][r.id] = r.qgInfo;
+                        sendResponse(1);
+                    }
+                },
+                error:function (xhr,status,error) {
+                    console,log("错误提示： " + xhr.status + " " + xhr.statusText);
+                },
+                complete : function(XMLHttpRequest,status){ //请求完成后最终执行参数
+                    if(status == 'timeout'){
+                        console.log("请求超时，请稍后再试！",'','error');
+                    }
+                }
+            });
+            break;
+        case 'cancelQgList':
+            $.ajax({
+                url:Host+'/coupon/cancelQgList',
+                data:{num_iid:r.id},
+                dataType:'json',
+                timeout:1000,
+                success:function (d) {
+                    if (d.status != -1){
+                        Util.setBadge(d.data);
+                        Util.delQgList(r.id);
+                        sendResponse(1);
+                    }
+                },
+                error:function (xhr,status,error) {
+                    sendResponse(0);
+                    console,log("错误提示： " + xhr.status + " " + xhr.statusText);
+                },
+                complete : function(XMLHttpRequest,status){ //请求完成后最终执行参数
+                    if(status == 'timeout'){
+                        console.log("请求超时，请稍后再试！",'','error');
+                    }
+                }
+            });
+            break;
+        case 'getSetting':
+            sendResponse(localStorage['tb_info']);
+            break;
+        case 'saveSetting':
+            localStorage['tb_info'] = JSON.stringify(r.data);
+            sendResponse(1);
+            break;
+        case 'tbLoginProof':
+            //登录淘宝 跟时间校验
+            if (r.data.isLogin == 0) {
+                //todo 提示登录
+                if (localStorage['tb_info']) {
+                    let loginInfo = JSON.parse(localStorage['tb_info']);
+                    if (loginInfo.tb_username && loginInfo.tb_password) {
+                        chrome.tabs.create({
+                            url:'https://login.m.taobao.com/login.htm?loginFrom=wap_tmall',
+                            index:0,
+                            selected:false
+                        }, tab => {
+                            console.log("tab",tab);
+                            setTimeout(function () {
+                                chrome.tabs.remove(tab.id);
+                            },5000);
+                        });
+                    }
+                }
+            }
+            Util.systemTime = r.data.systemTime;
+            break;
+        case 'qgOk':
+            //抢购成功 这里要有ajax 通知服务器 返回成功后 清楚bange
+            // Util.qgList
+            Util.delQgList(r.id);
             break;
     }
 });
@@ -179,7 +324,7 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
     } else if(details.type == 'main_frame') {
         //宝贝页面 先获取商品id
         var id = details.url.match(/[\?&]id=(\d{8,15})/);
-        if(id) {
+        if (id) {
             id = id[1];
         }
         //判断跳转详情页面时不是自己的pid 就替换掉
@@ -208,14 +353,24 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
             }
         } else if(sessionStorage['tab_'+id] && details.tabId == sessionStorage['tab_'+id]) {
             //这里处理得是用户从高佣跳转后造成的页面跳转失败问题
-            var url = sessionStorage['src_url_'+id];
+            let url = null;
+            //如果 这个商品是抢购商品的话 直接跳往用户选择好的sku连接
+            if (localStorage['qg_'+id]) {
+                let qgInfo = JSON.parse(localStorage['qg_'+id]);
+                url = qgInfo.url;
+            } else {
+                //普通的原链接
+                url = sessionStorage['src_url_'+id];
+            }
+
             sessionStorage.removeItem('src_url_'+id);
             return {redirectUrl: url};
         }
     }
 
 }, {
-    urls: ["*://detail.tmall.com/item.htm*","*://item.taobao.com/item.htm*",
+    urls: ["*://detail.tmall.com/item.htm*","*://detail.m.tmall.com/item.htm*",
+        "*://item.taobao.com/item.htm*","*://item.m.taobao.com/item.htm*",
     "*://acs.m.taobao.com/h5/mtop.alimama.union.hsf.coupon.get*"],
     types:["main_frame","other","script"]
 }, ["blocking"]);

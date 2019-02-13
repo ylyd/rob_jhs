@@ -57,13 +57,14 @@ var Util = {
             let nowStimeList = Util.qgList[stime];
 
             //准备打开页面抢购
-            if (cha < 1000) {
+            if (cha > 1500) {
                 for (let num_iid in nowStimeList) {
-                    if (!nowStimeList[num_iid]['tab']) {
+                    if (nowStimeList[num_iid]['tab']) {
                         continue;
                     }
+                    console.log("跳往手机版购买",nowStimeList[num_iid].url);
                     chrome.tabs.create({
-                        url:nowStimeList[num_iid].url.str_replace('detail.','detail.m.'),
+                        url:nowStimeList[num_iid].url.replace('detail.','detail.m.'),
                         selected:false
                     }, tab => {
                         nowStimeList[num_iid]['tab'] = tab.id;
@@ -86,12 +87,36 @@ var Util = {
                        url:nowStimeList[keyArr[0]].url,
                        selected:false
                    });
-                   Util.qgPageOpenOnce = true;
+                   console.log("开启一个聚划算产品页面",nowStimeList[keyArr[0]].url);
+                   //做一个2分钟的心跳 以便判断是否还有打开的聚划算页面在与后台通信
+                    Util.restQgTimeOut();
                }
             }
-
         }
+        Util.systemTime = Util.systemTime * 1 + 100;
         setTimeout(Util.checkQg,100);
+    },
+    //定时器标识
+    restQgTimeOutFlag:0,
+    //重置心跳包
+    restQgTimeOut:function(){
+        if (Object.keys(Util.qgList).length == 0) {
+            console.log('已经全部抢购完毕，列表为空');
+            Util.qgPageOpenOnce = false;
+            if (Util.restQgTimeOutFlag) {
+                clearTimeout(Util.restQgTimeOutFlag);
+            }
+            return;
+        }
+        Util.qgPageOpenOnce = true;
+        if (Util.restQgTimeOutFlag) {
+            clearTimeout(Util.restQgTimeOutFlag);
+            console.log('心跳被清理',Util.restQgTimeOutFlag);
+        }
+        Util.restQgTimeOutFlag = setTimeout(function () {
+            Util.qgPageOpenOnce = false;
+            console.log('心跳被触发',Util.restQgTimeOutFlag);
+        },240000);
     },
     delQgList:function(id){
         let qgInfo = localStorage['qg_'+id];
@@ -99,7 +124,9 @@ var Util = {
         //删除变量队列
         if (qgInfo) {
             qgInfo = JSON.parse(qgInfo);
-            delete Util.qgList[qgInfo.startTime][id];
+            if (Util.qgList[qgInfo.startTime] && Util.qgList[qgInfo.startTime][id]) {
+                delete Util.qgList[qgInfo.startTime][id];
+            }
         }
     },
     /**
@@ -179,6 +206,8 @@ var Util = {
     }
 };
 
+//获取带抢购列表
+Util.getMyQgItem();
 if (chrome.notifications) {
     chrome.notifications.onButtonClicked.addListener(function(NotifyId,c){
         chrome.tabs.create({url:Util.noticeUrl}, function(){
@@ -210,6 +239,8 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
             break;
             //加入抢购队列
         case 'addQgList':
+            //能加入抢购 就说明打开了聚划算页面
+            Util.qgPageOpenOnce = true;
             $.ajax({
                 url:Host+'/coupon/addQgList',
                 method:'POST',
@@ -217,11 +248,15 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
                 dataType:'json',
                 timeout:1000,
                 success:function (d) {
-                    if (d.status != -1){
+                    if (d.status == 1){
                         localStorage['qg_'+r.id] = JSON.stringify(r.qgInfo);
                         Util.setBadge(d.data);
                         //加入变量队列
+                        if (!Util.qgList[r.qgInfo.startTime]) {
+                            Util.qgList[r.qgInfo.startTime] = {};
+                        }
                         Util.qgList[r.qgInfo.startTime][r.id] = r.qgInfo;
+                        console.log("加入了抢购队列",r.id);
                         sendResponse(1);
                     }
                 },
@@ -242,9 +277,10 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
                 dataType:'json',
                 timeout:1000,
                 success:function (d) {
-                    if (d.status != -1){
+                    if (d.status == 1){
                         Util.setBadge(d.data);
                         Util.delQgList(r.id);
+                        console.log("取消了抢购队列",r.id);
                         sendResponse(1);
                     }
                 },
@@ -267,6 +303,8 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
             sendResponse(1);
             break;
         case 'tbLoginProof':
+            //重置心跳
+            Util.restQgTimeOut();
             //登录淘宝 跟时间校验
             if (r.data.isLogin == 0) {
                 //todo 提示登录
@@ -289,7 +327,7 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
             Util.systemTime = r.data.systemTime;
             break;
         case 'qgOk':
-            //抢购成功 这里要有ajax 通知服务器 返回成功后 清楚bange
+            //todo 抢购成功 这里要有ajax 通知服务器 返回成功后 清楚bange
             // Util.qgList
             Util.delQgList(r.id);
             break;
@@ -331,6 +369,7 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
         if (details.url.indexOf('mm_119948269') == -1) {
 
             if (sessionStorage['tab_'+id] && sessionStorage['tab_'+id] == details.tabId) {
+                console.log("刷新当前页操作");
                 //表示刷新当前页面 并且 已经跳转过高佣连接而来
                 return;
             }
@@ -351,16 +390,13 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
                 sessionStorage['tab_'+id]=details.tabId;
                 return {redirectUrl: data.item_url};
             }
-        } else if(sessionStorage['tab_'+id] && details.tabId == sessionStorage['tab_'+id]) {
+        } else if(sessionStorage['tab_'+id]) {
             //这里处理得是用户从高佣跳转后造成的页面跳转失败问题
-            let url = null;
-            //如果 这个商品是抢购商品的话 直接跳往用户选择好的sku连接
-            if (localStorage['qg_'+id]) {
+            let url = sessionStorage['src_url_'+id];
+            //如果 这个商品是抢购商品的话 直接跳往用户选择好的sku连接 若是直接跳往手机端的连接 就走 src_url
+            if (localStorage['qg_'+id] && url.indexOf("//detail.m.") == -1) {
                 let qgInfo = JSON.parse(localStorage['qg_'+id]);
                 url = qgInfo.url;
-            } else {
-                //普通的原链接
-                url = sessionStorage['src_url_'+id];
             }
 
             sessionStorage.removeItem('src_url_'+id);

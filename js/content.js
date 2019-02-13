@@ -6,8 +6,8 @@ if (qgId && qgId[1]) {
 //获取抢购的信息
 var qgInfo = null;
 chrome.extension.sendRequest({type: "getLocalQgItemById", id:qgId}, function(r){
-    if(r){
-        qgInfo = JSON.parse(r);
+    if(r && r.info){
+        qgInfo = JSON.parse(r.info);
     }
 });
 $(function () {
@@ -94,8 +94,8 @@ $(function () {
                 '<li>1. 插件抢购时请提前登录淘宝账号，为了避免 无人值守时淘宝账号掉线，希望您能填写淘宝账号密码，以便插件帮你自动登录，提高抢购几率。</li>' +
                 '<li>2. 插件抢购在网络状况良好时，可以瞬间为您抢到宝贝。这时需要您立即付款以便抢到前<strong>n</strong> 名的优惠价格。您可以提前设置好支付密码以便插件自动付款，提高抢购几率。</li>' +
                 '<li>3. 插件不会泄露您的任何个人信息，所有信息加密处理。</li>' +
-                '<li>3. 插件会为您搜索最高优惠券【包括各种内部券】为您自动领取，走最优惠途径购买。</li>' +
-                '<li>4. 关注官方微信公众号，方便及时的知道您的抢购结果，随时随地 添加、取消抢购，还有机会领取各种购物红包。</li></ul></form></div><a id="kaiqiang_btn"></a>' +
+                '<li>4. 插件会为您搜索最高优惠券【包括各种内部券】为您自动领取，走最优惠途径购买。</li>' +
+                '<li>5. 关注官方微信公众号，方便及时的知道您的抢购结果，随时随地 添加、取消抢购，还有机会领取各种购物红包。</li></ul></form></div><a id="kaiqiang_btn"></a>' +
                 '<div class="tb-clear"></div>')
                 .on('click',"#qg_setting",function () {
                     let o = $(this),form = $("#qg_form");
@@ -264,9 +264,10 @@ $(function () {
                     let eTime = new Date().getTime();
                     countDown.lazyTimeArr.push(eTime-sTime);
                     countDown.info.systemTime = d.data.time*1 + (eTime-sTime);
+                    let arrayAverage = countDown.lazyTimeArr.reduce((acc, val) => acc + val, 0) / countDown.lazyTimeArr.length;
                     //通知后台 校验时间的准确
                     chrome.extension.sendRequest({type: "tbLoginProof",
-                        data:{isLogin:d.data.isLogin,systemTime:countDown.info.systemTime}
+                        data:{isLogin:d.data.isLogin,systemTime:countDown.info.systemTime,sTime:new Date().getTime(),avg:arrayAverage}
                     });
                 }
                 setTimeout(countDown.proof,1000*60);

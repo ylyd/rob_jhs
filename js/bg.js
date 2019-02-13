@@ -48,16 +48,18 @@ try {
 var Util = {
     systemTime : (new Date()).getTime(),
     qgPageOpenOnce:false,
+    avgTime:300,
     //抢购队列
     qgList:{},
     //定时检查抢购队列
     checkQg : function(){
+        let sTime = new Date().getTime();
         for(let stime in Util.qgList) {
             let cha = stime*1 - Util.systemTime;
             let nowStimeList = Util.qgList[stime];
 
-            //准备打开页面抢购
-            if (cha > 1500) {
+            //准备打开页面抢购 提前3s 进入抢购页面
+            if (cha > 3000) {
                 for (let num_iid in nowStimeList) {
                     if (nowStimeList[num_iid]['tab']) {
                         continue;
@@ -93,7 +95,8 @@ var Util = {
                }
             }
         }
-        Util.systemTime = Util.systemTime * 1 + 100;
+        let eTime = new Date().getTime();
+        Util.systemTime = Util.systemTime * 1 + 100 + (eTime - sTime);
         setTimeout(Util.checkQg,100);
     },
     //定时器标识
@@ -235,7 +238,7 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
            break;
            //获取当前商品是否在抢购列表中
         case 'getLocalQgItemById':
-            sendResponse(localStorage['qg_'+r.id]);
+            sendResponse({info:localStorage['qg_'+r.id], systemTime:Util.systemTime,avgTime:Util.avgTime,pageStime:sessionStorage['tab_stime'+r.id]});
             break;
             //加入抢购队列
         case 'addQgList':
@@ -324,7 +327,9 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
                     }
                 }
             }
-            Util.systemTime = r.data.systemTime;
+            let eTime = new Date().getTime();
+            Util.systemTime = r.data.systemTime * 1 + (eTime - r.data.sTime);
+            Util.avgTime = r.data.avg;
             break;
         case 'qgOk':
             //todo 抢购成功 这里要有ajax 通知服务器 返回成功后 清楚bange
@@ -400,6 +405,7 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
             }
 
             sessionStorage.removeItem('src_url_'+id);
+            sessionStorage['tab_stime'+id] = new Date().getTime();
             return {redirectUrl: url};
         }
     }

@@ -33,18 +33,22 @@
       ],
       "js": ["js/jquery.js","js/coupon.js"]
     },
-  {
-    "matches" : ["*://login.m.taobao.com/login*"],
-    "js": ["js/jquery.js","js/login.js"]
-  },
-  {
-    "matches" : ["*://detail.m.tmall.com/*"],
-    "js": ["js/jquery.js","js/qg.js"]
-  },
-  {
-    "matches": ["*//h5.m.taobao.com/mlapp/cart*"],
-    "js": ["js/jquery.js","js/cart.js"]
-  }
+    {
+      "matches" : ["*://login.m.taobao.com/login*"],
+      "js": ["js/jquery.js","js/login.js"]
+    },
+    {
+      "matches" : ["*://detail.m.tmall.com/*"],
+      "js": ["js/jquery.js","js/qg.js"]
+    },
+    {
+      "matches": ["*://buy.m.tmall.com/order/confirmOrderWap*"],
+      "js": ["js/jquery.js","js/buySubmit.js"]
+    },
+    {
+      "matches": ["*://maliprod.alipay.com/w/trade_pay.do*"],
+      "js": ["js/jquery.js","js/pay.js"]
+    }
   ],
 "permissions": [
     "tabs",

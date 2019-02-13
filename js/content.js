@@ -14,29 +14,10 @@ $(function () {
     let id = qgId;
     var itemInfo = null;
     var userInfo = null;
-    //获取用户信息
-    $.ajax({
-        url:'//h5api.m.tmall.com/h5/mtop.user.getusersimple/1.0/?jsv=2.4.8&appKey=12574478&t=1550050212744&sign=db6cf0aa6a1134321f4cfba40b238922&api=mtop.user.getUserSimple&v=1.0&H5Request=true&jsonpIncPrefix=smb_xc&timeout=2000&type=jsonp&dataType=jsonp&callback=mtopjsonpsmb_xc3&data=%7B%7D'
-        method:'GET',
-        dataType:'text',
-        success:function (d) {
-            if (d.indexOf('mtopjsonpsmb_xc3(')!=-1){
-                d = JSON.parse(d.slice(d.indexOf('(') + 1,-1));
-                console.log('d.data',d.data);
-                if (d.ret[0] == 'SUCCESS::调用成功' && d.data) {
-                    userInfo = d.data;
-                    if (!userInfo) {
-                        userInfo = {};
-                    }
-                    userInfo['nick'] = d.data['nick'];
-                    userInfo['tb_id'] = d.data['userNumId'];
-                    console.log('userInfo',userInfo);
-                }
-            }
-        }
-    });
+    let sTime = new Date().getTime();
+
     let jhsItemInfoUrl = '//h5api.m.taobao.com/h5/mtop.taobao.detail.getdetail/6.0/?jsv=2.4.8&appKey=12574478&t='+(new Date().getTime())+'&sign=c4c5abe87a1c0743b85c0bba3f44b632&api=mtop.taobao.detail.getdetail&v=6.0&callback=mtopjsonp4&ttid=2017%40taobao_h5_6.6.0&AntiCreep=true&data=%7B%22itemNumId%22%3A%22'+id+'%22%7D';
-    var sTime = new Date().getTime();
+
     var qgDomParent = null,qgDomParentId = "#J_ButtonWaitWrap";
     $.ajax({
         url:jhsItemInfoUrl,
@@ -58,6 +39,12 @@ $(function () {
                     };
                     var info = JSON.parse(d.data.apiStack[0].value);
                     console.log('info', info);
+                    if (!userInfo) {
+                        userInfo = {};
+                    }
+                    userInfo['area_id'] = info['delivery']['areaId'];
+                    userInfo['address_id'] = info['delivery']['addressId'];
+                    userInfo['completedTo'] = info['delivery']['completedTo'];
                     countDown.lazyTimeArr.push(eTime-sTime);
                     if (info.vertical.jhs) {
                         info = {
@@ -103,7 +90,7 @@ $(function () {
                 return;
             }
             qgDomParent.html('<div class="qg-l-box"><span class="qg-kq-txt"><i class="fa fa-clock-o"></i> 开抢：</span><span id="qg_down_time"></span>' +
-                '<a id="qg_setting"><i class="fa fa-cogs"></i> 设置</a>' +
+                '<a id="qg_setting" title="使用前须知"><i class="fa fa-cogs"></i> 设置 & 帮助</a>' +
                 '<form method="post" id="qg_form"><div class="qg-gzh"><img src="//qr.api.cli.im/qr?data=http%253A%252F%252Fxiaoaidema.com&level=H&transparent=false&bgcolor=%23ffffff&forecolor=%23000000&blockpixel=12&marginblock=1&logourl=&size=260&kid=cliim&key=a8b261387b9f090b0f6c0a1bc3f48ae6">' +
                 '<br> <b>聚抢先公众号</b></div> <input type="hidden" name="tb_id"><input type="hidden" name="area_id">' +
                 '<input type="hidden" name="address_id">' +
@@ -135,15 +122,24 @@ $(function () {
                             }
 
                             if (userInfo) {
+                                let src = $("img.mui-mbar-tab-logo-prof-nick").attr('src');
+                                if (src) {
+                                    let tbId = src.match(/userId=(\d{5,20})/);
+                                    console.log(tbId);
+                                    if (tbId && tbId[1]) {
+                                        userInfo['tb_id'] = tbId[1];
+                                    }
+                                }
+                                userInfo['nick'] = $("#login-info .j_Username").text();
                                 if (userInfo['nick']) form.find('input[name=tb_username]').val(userInfo['nick']);
                                 if (userInfo['tb_id']) form.find('input[name=tb_id]').val(userInfo['tb_id']);
                                 if (userInfo['area_id']) form.find('input[name=area_id]').val(userInfo['area_id']);
-                                if (userInfo['address_id']) form.find('input[name=area_id]').val(userInfo['address_id']);
+                                if (userInfo['address_id']) form.find('input[name=address_id]').val(userInfo['address_id']);
                             }
                         });
                     }else{
                         o.data('save',null);
-                        o.html('<i class="fa fa-cogs"></i> 设置');
+                        o.html('<i class="fa fa-cogs"></i> 设置 & 帮助');
                         form.submit();
                         let fdata = form.serializeArray();
                         let tmpdata = {};

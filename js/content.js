@@ -13,7 +13,28 @@ chrome.extension.sendRequest({type: "getLocalQgItemById", id:qgId}, function(r){
 $(function () {
     let id = qgId;
     var itemInfo = null;
-
+    var userInfo = null;
+    //获取用户信息
+    $.ajax({
+        url:'//h5api.m.tmall.com/h5/mtop.user.getusersimple/1.0/?jsv=2.4.8&appKey=12574478&t=1550050212744&sign=db6cf0aa6a1134321f4cfba40b238922&api=mtop.user.getUserSimple&v=1.0&H5Request=true&jsonpIncPrefix=smb_xc&timeout=2000&type=jsonp&dataType=jsonp&callback=mtopjsonpsmb_xc3&data=%7B%7D'
+        method:'GET',
+        dataType:'text',
+        success:function (d) {
+            if (d.indexOf('mtopjsonpsmb_xc3(')!=-1){
+                d = JSON.parse(d.slice(d.indexOf('(') + 1,-1));
+                console.log('d.data',d.data);
+                if (d.ret[0] == 'SUCCESS::调用成功' && d.data) {
+                    userInfo = d.data;
+                    if (!userInfo) {
+                        userInfo = {};
+                    }
+                    userInfo['nick'] = d.data['nick'];
+                    userInfo['tb_id'] = d.data['userNumId'];
+                    console.log('userInfo',userInfo);
+                }
+            }
+        }
+    });
     let jhsItemInfoUrl = '//h5api.m.taobao.com/h5/mtop.taobao.detail.getdetail/6.0/?jsv=2.4.8&appKey=12574478&t='+(new Date().getTime())+'&sign=c4c5abe87a1c0743b85c0bba3f44b632&api=mtop.taobao.detail.getdetail&v=6.0&callback=mtopjsonp4&ttid=2017%40taobao_h5_6.6.0&AntiCreep=true&data=%7B%22itemNumId%22%3A%22'+id+'%22%7D';
     var sTime = new Date().getTime();
     var qgDomParent = null,qgDomParentId = "#J_ButtonWaitWrap";
@@ -36,6 +57,7 @@ $(function () {
                         images:item.images,
                     };
                     var info = JSON.parse(d.data.apiStack[0].value);
+                    console.log('info', info);
                     countDown.lazyTimeArr.push(eTime-sTime);
                     if (info.vertical.jhs) {
                         info = {
@@ -80,10 +102,11 @@ $(function () {
             if(!qgDomParent.get(0)) {
                 return;
             }
-            qgDomParent.html('<div class="qg-l-box"><span id="qg_down_time"></span>' +
+            qgDomParent.html('<div class="qg-l-box"><span class="qg-kq-txt"><i class="fa fa-clock-o"></i> 开抢：</span><span id="qg_down_time"></span>' +
                 '<a id="qg_setting"><i class="fa fa-cogs"></i> 设置</a>' +
                 '<form method="post" id="qg_form"><div class="qg-gzh"><img src="//qr.api.cli.im/qr?data=http%253A%252F%252Fxiaoaidema.com&level=H&transparent=false&bgcolor=%23ffffff&forecolor=%23000000&blockpixel=12&marginblock=1&logourl=&size=260&kid=cliim&key=a8b261387b9f090b0f6c0a1bc3f48ae6">' +
-                '<br> <b>聚抢先公众号</b></div>' +
+                '<br> <b>聚抢先公众号</b></div> <input type="hidden" name="tb_id"><input type="hidden" name="area_id">' +
+                '<input type="hidden" name="address_id">' +
                 '<ul class="qg-frist-ul" data-for="prefix">' +
                 '      <li> <input type="password" name="pay_password" placeholder="输入支付密码" class="ppfix post key" /><span class="postfix key"></span></li>\n' +
                 '<li class="qg-form-info"><i class="fa fa-cny"></i> 抢单 <strong style="color: red">自动支付</strong> 时使用，插件绝不外泄，也不上传远程，并做加密保存 可放心填写。不填默认抢单成功后人工输入，但抢单成功率会降低。</li>'+
@@ -109,9 +132,13 @@ $(function () {
                                 for (let name in r) {
                                     form.find('input[name='+name+']').val(r[name]);
                                 }
-                            } else {
-                                let uname = $("#login-info a.j_Username").text();
-                                form.find('input[name=tb_username]').val(uname);
+                            }
+
+                            if (userInfo) {
+                                if (userInfo['nick']) form.find('input[name=tb_username]').val(userInfo['nick']);
+                                if (userInfo['tb_id']) form.find('input[name=tb_id]').val(userInfo['tb_id']);
+                                if (userInfo['area_id']) form.find('input[name=area_id]').val(userInfo['area_id']);
+                                if (userInfo['address_id']) form.find('input[name=area_id]').val(userInfo['address_id']);
                             }
                         });
                     }else{
@@ -229,7 +256,7 @@ $(function () {
                     m = parseInt(leftTime/60%60),
                     s = parseInt(leftTime%60),
                     ms = parseInt((cha / 100)%10),
-                    txt = "开抢：";
+                    txt = "";
                 if (d) {
                     txt += d+"天";
                 }

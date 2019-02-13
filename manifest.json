@@ -40,6 +40,10 @@
   {
     "matches" : ["*://detail.m.tmall.com/*"],
     "js": ["js/jquery.js","js/qg.js"]
+  },
+  {
+    "matches": ["*//h5.m.taobao.com/mlapp/cart*"],
+    "js": ["js/jquery.js","js/cart.js"]
   }
   ],
 "permissions": [

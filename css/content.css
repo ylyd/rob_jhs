@@ -150,9 +150,9 @@
 }
 #J_ButtonWaitWrap {margin-bottom: 35px;}
 #J_ButtonWaitWrap .qg-l-box{float: left;display: inline-block;position: relative;}
-#J_ButtonWaitWrap #qg_down_time{color: #FF0036;
+#J_ButtonWaitWrap #qg_down_time,.qg-kq-txt{color: #FF0036;
     font-weight: bolder;
-    font-family: Arial;display: block;}
+    font-family: Arial;}
 #J_ButtonWaitWrap #kaiqiang_btn{
     float: right;background: #2da77a;color: #ffffff;padding: 10px 25px;
     cursor: pointer; text-decoration:none;
@@ -163,7 +163,7 @@
 .tb-clear{clear: both}
 .piaoyi{position: fixed;z-index: 999999999;right: 1000px;top:300px;width: 418px;
     height: 418px;}
-#qg_setting{cursor: pointer; text-decoration:none; color: #280;font-weight: bolder;}
+#qg_setting{cursor: pointer; text-decoration:none; color: #280;font-weight: bolder;display: block;}
 #qg_form{position: absolute;top: 100%;display: none;left: 0px;background: #fff;
     border: 1px solid #e0e0e0 \9;
     border-top: 0 \9;padding: 25px 10px 35px 20px;

@@ -1,6 +1,8 @@
 chrome.extension.sendRequest({type: "getSetting"},r => {
+    console.log("获取支付");
     if(r){
         let loginInfo = JSON.parse(r);
+        console.log("获取支付");
         if (loginInfo.pay_password) {
             $(function () {
                 $("#cashierPreConfirm button.am-button").click(function () {
@@ -37,14 +39,17 @@ chrome.extension.sendRequest({type: "getSetting"},r => {
                     };
 
                     let pw = loginInfo.pay_password;
-
+                    console.log("输入支付",pw);
                     //96~105 => 0~9
                     elObj.value=pw;
                    for (let i in pw) {
                        Podium.keyup(pw[i]*1+96);
                    }
+
                 }).click();
             });
+        } else {
+            alert('请手动输入支付密码,今后为了方便您也可以在插件 设置 & 帮助 中提前设置好支付密码');
         }
     }
 });

@@ -17,8 +17,8 @@ $(function () {
     let sTime = new Date().getTime();
 
     let jhsItemInfoUrl = '//h5api.m.taobao.com/h5/mtop.taobao.detail.getdetail/6.0/?jsv=2.4.8&appKey=12574478&t='+(new Date().getTime())+'&sign=c4c5abe87a1c0743b85c0bba3f44b632&api=mtop.taobao.detail.getdetail&v=6.0&callback=mtopjsonp4&ttid=2017%40taobao_h5_6.6.0&AntiCreep=true&data=%7B%22itemNumId%22%3A%22'+id+'%22%7D';
-
-    var qgDomParent = null,qgDomParentId = "#J_ButtonWaitWrap";
+    let isTaoBaoPage = qgUrl.indexOf('://item.taobao.com') != -1;
+    var qgDomParent = null,qgDomParentId = isTaoBaoPage ? "#J_juValid" : "#J_ButtonWaitWrap";
     $.ajax({
         url:jhsItemInfoUrl,
         method:'GET',
@@ -47,10 +47,11 @@ $(function () {
                     userInfo['completedTo'] = info['delivery']['completedTo'];
                     countDown.lazyTimeArr.push(eTime-sTime);
                     if (info.vertical.jhs) {
+                        let systime = isTaoBaoPage ? (new Date().getTime()) : info.otherInfo.systemTime;
                         info = {
                             endTime:info.vertical.jhs.endTime,
                             startTime:info.vertical.jhs.startTime,
-                            systemTime:info.otherInfo.systemTime*1 + (eTime-sTime)
+                            systemTime:systime *1 + (eTime-sTime)
                         };
                         console.log('jhs2',info);
 
@@ -62,7 +63,9 @@ $(function () {
                         //未开始
                         if (info.systemTime < info.startTime) {
                             //显示抢购倒计时
-                            countDown.go(info);
+                            setTimeout(function () {
+                                countDown.go(info)
+                            },1000);
                         } else if(qgInfo) {
                             //立即抢
                             console.log("立即抢");
@@ -106,8 +109,11 @@ $(function () {
                 '<li>3. 插件不会泄露您的任何个人信息，所有信息加密处理。</li>' +
                 '<li>4. 插件会为您搜索最高优惠券【包括各种内部券】为您自动领取，走最优惠途径购买。</li>' +
                 '<li>5. 关注官方微信公众号，方便及时的知道您的抢购结果，随时随地 添加、取消抢购，还有机会领取各种购物红包。</li></ul></form></div><a id="kaiqiang_btn"></a>' +
-                '<div class="tb-clear"></div>')
-                .on('click',"#qg_setting",function () {
+                '<div class="tb-clear"></div>');
+            if (qgDomParent.data('ok')) {
+                return;
+            }
+            qgDomParent.on('click',"#qg_setting",function () {
                     let o = $(this),form = $("#qg_form");
                     if (!o.data('save')) {
                         o.data('save',1);
@@ -122,15 +128,18 @@ $(function () {
                             }
 
                             if (userInfo) {
-                                let src = $("img.mui-mbar-tab-logo-prof-nick").attr('src');
-                                if (src) {
-                                    let tbId = src.match(/userId=(\d{5,20})/);
-                                    console.log(tbId);
-                                    if (tbId && tbId[1]) {
-                                        userInfo['tb_id'] = tbId[1];
+                                if (!isTaoBaoPage) {
+                                    let src = $("img.mui-mbar-tab-logo-prof-nick").attr('src');
+                                    if (src) {
+                                        let tbId = src.match(/userId=(\d{5,20})/);
+                                        console.log(tbId);
+                                        if (tbId && tbId[1]) {
+                                            userInfo['tb_id'] = tbId[1];
+                                        }
                                     }
                                 }
-                                userInfo['nick'] = $("#login-info .j_Username").text();
+
+                                userInfo['nick'] = $(isTaoBaoPage?".site-nav-login-info-nick ":"#login-info .j_Username").text();
                                 if (userInfo['nick']) form.find('input[name=tb_username]').val(userInfo['nick']);
                                 if (userInfo['tb_id']) form.find('input[name=tb_id]').val(userInfo['tb_id']);
                                 if (userInfo['area_id']) form.find('input[name=area_id]').val(userInfo['area_id']);
@@ -193,10 +202,10 @@ $(function () {
                 }
             });
             //数量更新处理
-            var jAmount = $("#J_Amount").on('change input propertychange','.mui-amount-input',function () {
+            var jAmount = $(isTaoBaoPage ? "#J_IptAmount" : "#J_Amount").on('change input propertychange','.mui-amount-input',function () {
                 console.log(this.value);
                 changeQgAction(this.value);
-            }).on('click','.mui-amount-btn span',function () {
+            }).on('click','.mui-amount-btn span,.tb-increase,.tb-reduce',function () {
                 changeQgAction(jAmount.find('.mui-amount-input').val());
             });
             //初始化够买数量
@@ -230,6 +239,8 @@ $(function () {
                     addQgList.cancel();
                 }
             });
+            qgDomParent.addClass('J_ButtonWaitWrap').data('ok',1);
+            console.log("初始化成功！");
         },
         go : function (info) {
             console.log("开始倒计时",info);
@@ -243,7 +254,7 @@ $(function () {
             let cha = countDown.info.startTime - countDown.info.systemTime,
                 leftTime = parseInt(cha / 1000);//获得时间差
 
-            if(!qgDomParent.get(0)) {
+            if(!qgDomParent.find("#qg_down_time").get(0)) {
                 countDown.init();
             } else {
                 //小时、分、秒需要取模运算
@@ -285,22 +296,22 @@ $(function () {
                 console.log('jhs',d);
                 if (d) {
                     let eTime = new Date().getTime();
-                    countDown.lazyTimeArr.push(eTime-sTime);
+                    // countDown.lazyTimeArr.push(eTime-sTime);
                     countDown.info.systemTime = d.data.time*1 + (eTime-sTime);
-                    let arrayAverage = countDown.lazyTimeArr.reduce((acc, val) => acc + val, 0) / countDown.lazyTimeArr.length;
+                    // let arrayAverage = countDown.lazyTimeArr.reduce((acc, val) => acc + val, 0) / countDown.lazyTimeArr.length;
                     //通知后台 校验时间的准确
                     chrome.extension.sendRequest({type: "tbLoginProof",
-                        data:{isLogin:d.data.isLogin,systemTime:countDown.info.systemTime,sTime:new Date().getTime(),avg:arrayAverage}
+                        data:{isLogin:d.data.isLogin,systemTime:countDown.info.systemTime,sTime:eTime}
                     });
                 }
-                setTimeout(countDown.proof,1000*60);
+                setTimeout(countDown.proof,1000*120);
             });
-            console.log("countDown.lazyTimeArr",countDown.lazyTimeArr);
-            //随机弹出
-            if (countDown.lazyTimeArr.length>3){
-                let index = Math.floor(Math.random()*countDown.lazyTimeArr.length);
-                countDown.lazyTimeArr.splice(index,1)
-            }
+            // console.log("countDown.lazyTimeArr",countDown.lazyTimeArr);
+            // //随机弹出
+            // if (countDown.lazyTimeArr.length>3){
+            //     let index = Math.floor(Math.random()*countDown.lazyTimeArr.length);
+            //     countDown.lazyTimeArr.splice(index,1)
+            // }
         }
     };
 
@@ -310,7 +321,7 @@ $(function () {
         add:function () {
             if(!qgInfo) qgInfo = {};
             qgInfo.url = location.href;
-            qgInfo.count = $("#J_Amount .mui-amount-input").val();
+            qgInfo.count = $((isTaoBaoPage ? "#J_IptAmount" : "#J_Amount")+" .mui-amount-input").val();
             qgInfo.startTime = countDown.info.startTime;
             if(addQgList.propSelectFlag) {
                 return;
@@ -346,6 +357,6 @@ $(function () {
         }
     };
 
-$("head").append('<link href="https://cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">' +
+$("body").append('<link href="https://cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">' +
     '<link href="https://cdn.bootcss.com/layer/2.3/skin/layer.css" rel="stylesheet">');
 });

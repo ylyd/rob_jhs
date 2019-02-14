@@ -48,7 +48,6 @@ try {
 var Util = {
     systemTime : (new Date()).getTime(),
     qgPageOpenOnce:false,
-    avgTime:300,
     //抢购队列
     qgList:{},
     currentQgKey:null,//当前抢购列表的key值
@@ -57,20 +56,22 @@ var Util = {
     //定时检查抢购队列
     checkQg : function(){
         let sTime = new Date().getTime();
+        let lazyTime = 30000;
         for(let stime in Util.qgList) {
             let cha = stime*1 - Util.systemTime;
             let nowStimeList = Util.qgList[stime];
-            //准备打开页面抢购 提前3s 进入抢购页面
-            if (cha > 3000) {
-                let keyArr = Object.keys(nowStimeList);
+            let keyArr = Object.keys(nowStimeList);
+            //准备打开页面抢购 进入抢购页面 尽量不要太多
+            if (cha < (keyArr.length + 1) * lazyTime) {
                 Util.currentQgKey = stime;// 把当前要抢购的商品暂存起来
                 Util.currentQgCount = 0;//初始化
+                let openOne = false;
                 for (let num_iid in nowStimeList) {
                     //判断是否已经打开了tab标签进行抢购
-                    if (nowStimeList[num_iid]['tab']) {
+                    if (nowStimeList[num_iid]['tab'] || openOne) {
                         continue;
                     }
-                    console.log("跳往手机版购买",nowStimeList[num_iid].url);
+                    //开启页面
                     chrome.tabs.create({
                         url:nowStimeList[num_iid].url.replace('detail.','detail.m.'),//多条抢购使用加入购物车 单条是 立即抢
                         selected:false
@@ -78,14 +79,8 @@ var Util = {
                         nowStimeList[num_iid]['tab'] = tab.id;
                         Util.currentQgCount++;
                     });
-                }
-
-            } else if (cha < 120000) {
-                //小于两分钟 查看是否有高佣连接 没有的话 先申请
-                for (let num_iid in nowStimeList) {
-                    if (!sessionStorage[num_iid]) {
-                        Util.getGY({num_iid:num_iid}, true);
-                    }
+                    //每次只开启一个页面
+                    openOne = true;
                 }
             }
 
@@ -105,7 +100,8 @@ var Util = {
         }
         let eTime = new Date().getTime();
         Util.systemTime = Util.systemTime * 1 + 100 + (eTime - sTime);
-        setTimeout(Util.checkQg,100);
+        //lazyTime秒检测一次 相当于lazyTime 秒后打开一个抢购的商品
+        setTimeout(Util.checkQg, lazyTime);
     },
     //定时器标识
     restQgTimeOutFlag:0,
@@ -131,7 +127,7 @@ var Util = {
                 Util.qgPageOpenOnce = false;
             }
             console.log(time.getHours()+':'+time.getMinutes()+':'+time.getSeconds()+': 心跳被触发');
-        },240000);
+        },480000);
     },
     delQgList:function(id){
         let qgInfo = localStorage['qg_'+id];
@@ -142,6 +138,25 @@ var Util = {
             if (Util.qgList[qgInfo.startTime] && Util.qgList[qgInfo.startTime][id]) {
                 delete Util.qgList[qgInfo.startTime][id];
             }
+        }
+    },
+    /**
+     * 抢购成功啦！
+     */
+    qgSuccess:function(tabId){
+        let currentQgList = Util.qgList[Util.currentQgKey];
+        for (let num_iid in currentQgList) {
+            if (currentQgList[num_iid]['tab'] == tabId) {
+                //付款成功！！！
+                console.log("num_iid",num_iid,'tabid',tabId,"付款成功","删除队列");
+                delete Util.delQgList(num_iid);
+                $.get(Host+'/coupon/qgSuccess',{num_iid:num_iid});
+                continue;
+            }
+        }
+        if (Object.keys(currentQgList).length == 0) {
+            //删除当前时间的抢购列表
+            delete Util.qgList[Util.currentQgKey];
         }
     },
     /**
@@ -250,7 +265,7 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
            break;
            //获取当前商品是否在抢购列表中
         case 'getLocalQgItemById':
-            sendResponse({info:localStorage['qg_'+r.id], systemTime:Util.systemTime,avgTime:Util.avgTime,pageStime:sessionStorage['tab_stime'+r.id]});
+            sendResponse({info:localStorage['qg_'+r.id], systemTime:Util.systemTime,pageStime:sessionStorage['tab_stime'+r.id]});
             break;
             //加入抢购队列
         case 'addQgList':
@@ -314,7 +329,17 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
             sendResponse(localStorage['tb_info']);
             break;
         case 'saveSetting':
-            localStorage['tb_info'] = JSON.stringify(r.data);
+            let tbInfo = r.data;
+            if (localStorage['tb_info']) {
+                tbInfo = JSON.parse(localStorage['tb_info']);
+                for(let key in r.data) {
+                    if (r.data[key]) {
+                        tbInfo[key] = r.data[key];
+                    }
+                }
+            }
+
+            localStorage['tb_info'] = JSON.stringify(tbInfo);
             sendResponse(1);
             break;
         case 'tbLoginProof':
@@ -341,28 +366,10 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
             }
             let eTime = new Date().getTime();
             Util.systemTime = r.data.systemTime * 1 + (eTime - r.data.sTime);
-            Util.avgTime = r.data.avg;
             break;
             //给购物车页面返回当前抢购的num_iids
         case 'getCurrenQgNumIids':
             sendResponse(Object.keys(Util.qgList[Util.currentQgKey]).join(','));
-            //抢购页面开始够买
-        case 'buyStart':
-            Util.qgList[Util.currentQgKey][r.id]['status'] = 1;
-            Util.currentQgSucNum++;
-            //判断所有的商品是否都已经加入购物车 当 是多条抢购的时候
-            if (Util.currentQgSucNum == Util.currentQgCount && Object.keys(Util.qgList[Util.currentQgKey]).length > 1) {
-                //打开购物车结算页面
-                chrome.tabs.creat({
-                    url:'https://h5.m.taobao.com/mlapp/cart.html?cartfrom=detail',
-                    selected:false
-                });
-            }
-            break;
-        case 'qgOk':
-            //todo 抢购成功 这里要有ajax 通知服务器 返回成功后 清楚bange
-            // Util.qgList
-            Util.delQgList(r.id);
             break;
     }
 });
@@ -370,6 +377,10 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
 chrome.webRequest.onBeforeRequest.addListener(details => {
     console.log(details);
     //优惠券页面
+    if(details.url.indexOf("maliprod.alipay.com/w/trade_pay.do") != -1) {
+        Util.qgSuccess(details.tabId);
+        return;
+    }
     if (details.url.indexOf('acs.m.taobao.com/h5/mtop.alimama.union.hsf.coupon.get') != -1) {
         $.ajax({
             url:details.url,
@@ -411,6 +422,12 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
                 //以同步的方式生成高佣后再继续往下执行
                 Util.getGY({num_iid:id}, false);
                 if (!sessionStorage[id]) {
+                    //如果 这个商品是抢购商品的话 直接跳往用户选择好的sku连接 若是直接跳往手机端的连接 就走 src_url
+                    if (localStorage['qg_'+id] && details.url.indexOf("//detail.m.") == -1) {
+                        let qgInfo = JSON.parse(localStorage['qg_'+id]);
+                        console.log("-1 走这里");
+                        return {redirectUrl: qgInfo.url};
+                    }
                     return;
                 }
             }
@@ -431,7 +448,7 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
                 let qgInfo = JSON.parse(localStorage['qg_'+id]);
                 url = qgInfo.url;
             }
-
+            console.log('最终url',url);
             sessionStorage.removeItem('src_url_'+id);
             sessionStorage['tab_stime'+id] = new Date().getTime();
             return {redirectUrl: url};
@@ -441,6 +458,6 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
 }, {
     urls: ["*://detail.tmall.com/item.htm*","*://detail.m.tmall.com/item.htm*",
         "*://item.taobao.com/item.htm*","*://item.m.taobao.com/item.htm*",
-    "*://acs.m.taobao.com/h5/mtop.alimama.union.hsf.coupon.get*"],
+    "*://acs.m.taobao.com/h5/mtop.alimama.union.hsf.coupon.get*","*://maliprod.alipay.com/w/trade_pay.do*"],
     types:["main_frame","other","script"]
 }, ["blocking"]);

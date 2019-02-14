@@ -348,23 +348,6 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
                 }
             });
             break;
-        case 'getSetting':
-            sendResponse(localStorage['tb_info']);
-            break;
-        case 'saveSetting':
-            let tbInfo = r.data;
-            if (localStorage['tb_info']) {
-                tbInfo = JSON.parse(localStorage['tb_info']);
-                for(let key in r.data) {
-                    if (r.data[key]) {
-                        tbInfo[key] = r.data[key];
-                    }
-                }
-            }
-
-            localStorage['tb_info'] = JSON.stringify(tbInfo);
-            sendResponse(1);
-            break;
         case 'tbLoginProof':
             //重置心跳
             Util.restQgTimeOut();

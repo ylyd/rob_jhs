@@ -471,7 +471,7 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
             let url = sessionStorage['src_url_'+id];
             //如果 这个商品是抢购商品的话 直接跳往用户选择好的sku连接 若是直接跳往手机端的连接 就走 src_url
             if (localStorage['qg_'+id] &&
-                (details.url.indexOf("//detail.m.") == -1 || details.url.indexOf('h5.m.taobao.com/awp/core/detail') == -1)) {
+                (details.url.indexOf("//detail.m.") != -1 || details.url.indexOf('h5.m.taobao.com/awp/core/detail') != -1)) {
                 let qgInfo = JSON.parse(localStorage['qg_'+id]);
                 url = qgInfo.url;
             }
@@ -482,7 +482,7 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
     }
 
 }, {
-    urls: ["*://detail.tmall.com/item.htm*","*://detail.m.tmall.com/item.htm*",
+    urls: ["*://detail.tmall.com/item.htm*","*://detail.m.tmall.com/item.htm*","*://chaoshi.detail.tmall.com/item.htm*",
         "*://item.taobao.com/item.htm*","*://h5.m.taobao.com/awp/core/detail*",
     "*://acs.m.taobao.com/h5/mtop.alimama.union.hsf.coupon.get*","*://mclient.alipay.com/h5/cashierPay.htm*"],
     types:["main_frame","other","script"]

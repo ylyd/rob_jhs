@@ -57,14 +57,14 @@ var Util = {
     //定时检查抢购队列
     checkQg : function(){
         let sTime = new Date().getTime();
-        let lazyTime = 30000;
+        let lazyTime = 20000;
         for(let stime in Util.qgList) {
             let cha = stime*1 - Util.systemTime;
             let nowStimeList = Util.qgList[stime];
             let keyArr = Object.keys(nowStimeList);
             //准备打开页面抢购 进入抢购页面 尽量不要太多
             console.log('轮训',cha < (keyArr.length + 1) * lazyTime,cha ,(keyArr.length + 1) * lazyTime);
-            if (cha < (keyArr.length + 1) * lazyTime) {
+            if (cha <= (keyArr.length + 1) * lazyTime) {
                 Util.currentQgKey = stime;// 把当前要抢购的商品暂存起来
                 Util.currentQgCount = 0;//初始化
                 let openOne = false;
@@ -74,8 +74,15 @@ var Util = {
                         continue;
                     }
                     //开启页面
+                    let url = nowStimeList[num_iid].url;
+                    if (url.indexOf('item.taobao.com/item') != -1) {
+                        //判断是淘宝的商品
+                        url = 'https://h5.m.taobao.com/awp/core/detail.htm?'+(url.split('?')[1]);
+                    } else {
+                        url = url.replace(/:\/\/.*detail./,'://detail.m.');
+                    }
                     chrome.tabs.create({
-                        url:nowStimeList[num_iid].url.replace(/:\/\/.*detail./,'://detail.m.'),//多条抢购使用加入购物车 单条是 立即抢
+                        url:url,//多条抢购使用加入购物车 单条是 立即抢
                         selected:false
                     }, tab => {
                         nowStimeList[num_iid]['tab'] = tab.id;
@@ -100,7 +107,7 @@ var Util = {
             }
         }
         let eTime = new Date().getTime();
-        Util.systemTime = Util.systemTime * 1 + 100 + (eTime - sTime);
+        Util.systemTime = Util.systemTime * 1 + lazyTime + (eTime - sTime);
         //lazyTime秒检测一次 相当于lazyTime 秒后打开一个抢购的商品
         setTimeout(Util.checkQg, lazyTime);
     },
@@ -159,7 +166,10 @@ var Util = {
                 $.get(Host+'/coupon/qgSuccess',{num_iid:num_iid},function (d) {
                     //关闭tab
                     console.log("准备关闭tab",tabId);
-                    chrome.tabs.remove(tabId);
+                    setTimeout(function () {
+                        chrome.tabs.remove(tabId);
+                    },10000);
+
                 });
                 continue;
             }
@@ -437,7 +447,8 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
                 Util.getGY({num_iid:id}, false);
                 if (!sessionStorage[id]) {
                     //如果 这个商品是抢购商品的话 直接跳往用户选择好的sku连接 若是直接跳往手机端的连接 就走 src_url
-                    if (localStorage['qg_'+id] && details.url.indexOf("//detail.m.") == -1) {
+                    if (localStorage['qg_'+id] &&
+                        (details.url.indexOf("//detail.m.") == -1 || details.url.indexOf('h5.m.taobao.com/awp/core/detail') == -1)) {
                         let qgInfo = JSON.parse(localStorage['qg_'+id]);
                         console.log("-1 走这里");
                         return {redirectUrl: qgInfo.url};
@@ -459,7 +470,8 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
             //这里处理得是用户从高佣跳转后造成的页面跳转失败问题
             let url = sessionStorage['src_url_'+id];
             //如果 这个商品是抢购商品的话 直接跳往用户选择好的sku连接 若是直接跳往手机端的连接 就走 src_url
-            if (localStorage['qg_'+id] && url.indexOf("//detail.m.") == -1) {
+            if (localStorage['qg_'+id] &&
+                (details.url.indexOf("//detail.m.") == -1 || details.url.indexOf('h5.m.taobao.com/awp/core/detail') == -1)) {
                 let qgInfo = JSON.parse(localStorage['qg_'+id]);
                 url = qgInfo.url;
             }
@@ -471,7 +483,7 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
 
 }, {
     urls: ["*://detail.tmall.com/item.htm*","*://detail.m.tmall.com/item.htm*",
-        "*://item.taobao.com/item.htm*","*://item.m.taobao.com/item.htm*",
+        "*://item.taobao.com/item.htm*","*://h5.m.taobao.com/awp/core/detail*",
     "*://acs.m.taobao.com/h5/mtop.alimama.union.hsf.coupon.get*","*://mclient.alipay.com/h5/cashierPay.htm*"],
     types:["main_frame","other","script"]
 }, ["blocking"]);
@@ -481,6 +493,13 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
     //如果tab cache中存有num_iid 则把 tab_num_iid 的缓存清理 防止下次打开报错
     if (Util.tabNumIidCache[tabId]) {
         let id = Util.tabNumIidCache[tabId];
+        if (sessionStorage['tab_'+id] != tabId) {
+            try{
+                chrome.tabs.remove(sessionStorage['tab_'+id]);
+            } catch (e) {
+                console.log('清除无用tab出异常');
+            }
+        }
         sessionStorage.removeItem('tab_'+id);
         console.log("清理tab_id",'tab_'+id);
     }

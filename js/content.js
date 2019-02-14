@@ -3,6 +3,12 @@ var qgId = qgUrl.match(/id=(\d{5,20})/);
 if (qgId && qgId[1]) {
     qgId = qgId[1];
 }
+var skuId = qgUrl.match(/skuId=(\d{5,20})/);
+if (skuId && skuId[1]) {
+    skuId = '&skuId='+skuId[1];
+} else {
+    skuId = '';
+}
 //获取抢购的信息
 var qgInfo = null;
 chrome.extension.sendRequest({type: "getLocalQgItemById", id:qgId}, function(r){
@@ -17,7 +23,7 @@ $(function () {
     let sTime = new Date().getTime();
 
     let jhsItemInfoUrl = '//h5api.m.taobao.com/h5/mtop.taobao.detail.getdetail/6.0/?jsv=2.4.8&appKey=12574478&t='+(new Date().getTime())+'&sign=c4c5abe87a1c0743b85c0bba3f44b632&api=mtop.taobao.detail.getdetail&v=6.0&callback=mtopjsonp4&ttid=2017%40taobao_h5_6.6.0&AntiCreep=true&data=%7B%22itemNumId%22%3A%22'+id+'%22%7D';
-    let isTaoBaoPage = qgUrl.indexOf('://item.taobao.com') != -1;
+    let isTaoBaoPage = qgUrl.indexOf('://item.taobao.com') != -1,skuBase = {},skuBaseBySkuId = {};
     var qgDomParent = null,qgDomParentId = isTaoBaoPage ? "#J_juValid" : "#J_ButtonWaitWrap";
     $.ajax({
         url:jhsItemInfoUrl,
@@ -31,6 +37,16 @@ $(function () {
                 d = JSON.parse(d.slice(d.indexOf('(') + 1,-1));
                 console.log('d.data',d.data);
                 if (d.ret[0] == 'SUCCESS::调用成功' && d.data && d.data.apiStack && d.data.apiStack[0]) {
+                    if (isTaoBaoPage) {
+                        let skuBaseTmp = d.data.skuBase.skus;
+                        for (let b in skuBaseTmp) {
+                            let skuid = skuBaseTmp[b].skuId;
+                            let propPath = skuBaseTmp[b].propPath;
+                            skuBaseBySkuId[skuid] = propPath;
+                            skuBase[propPath] = skuid;
+                        }
+                        console.log("skuBase",skuBase);
+                    }
                     let item = d.data.item;
                     itemInfo = {
                         num_iid:id,
@@ -110,6 +126,19 @@ $(function () {
                 '<li>4. 插件会为您搜索最高优惠券【包括各种内部券】为您自动领取，走最优惠途径购买。</li>' +
                 '<li>5. 关注官方微信公众号，方便及时的知道您的抢购结果，随时随地 添加、取消抢购，还有机会领取各种购物红包。</li></ul></form></div><a id="kaiqiang_btn"></a>' +
                 '<div class="tb-clear"></div>');
+            if (isTaoBaoPage) {
+                let propPath = skuBaseBySkuId[skuId];
+                let JiskuObj = $("#J_isku");
+                if (propPath) {
+                    propPath = propPath.split(';');
+                    for(let i in propPath) {
+                        JiskuObj.find("li[data-value="+propPath[i]+"]").click();
+                    }
+                }
+                $("#J_isku .tb-selected").each(function (i,v) {
+                    skuArr.push($(v).attr('data-value'));
+                });
+            }
             if (qgDomParent.data('ok')) {
                 return;
             }
@@ -321,6 +350,18 @@ $(function () {
         add:function () {
             if(!qgInfo) qgInfo = {};
             qgInfo.url = location.href;
+            if (isTaoBaoPage) {
+                //计算sku
+                let skuArr = [];
+                $("#J_isku .tb-selected").each(function (i,v) {
+                    skuArr.push($(v).attr('data-value'));
+                });
+                if (skuArr.length>0) {
+                    let propPath = skuArr.join(';');
+                    skuId = skuBase[propPath];
+                    qgInfo.url+='&skuId='+skuId;
+                }
+            }
             qgInfo.count = $((isTaoBaoPage ? "#J_IptAmount" : "#J_Amount")+" .mui-amount-input").val();
             qgInfo.startTime = countDown.info.startTime;
             if(addQgList.propSelectFlag) {

@@ -9,6 +9,6 @@ $(function () {
                 clearInterval(timeFlag);
                 ac.click();
             }
-        },2);
+        },1);
     }
 });

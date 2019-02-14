@@ -148,14 +148,13 @@ $(function () {
                         o.data('save',1);
                         o.html('<i class="fa fa-save"></i> 保存设置');
                         form.show();
-                        chrome.extension.sendRequest({type: "getSetting"}, function(r){
-                            if(r){
-                                r = JSON.parse(r);
+                        chrome.storage.sync.get('tb_info', function(r) {
+                            if(r && r['tb_info']){
+                                r = r['tb_info'];
                                 for (let name in r) {
                                     form.find('input[name='+name+']').val(r[name]);
                                 }
                             }
-
                             if (userInfo) {
                                 if (!isTaoBaoPage) {
                                     let src = $("img.mui-mbar-tab-logo-prof-nick").attr('src');
@@ -184,16 +183,9 @@ $(function () {
                         for (let i in fdata) {
                             tmpdata[fdata[i].name] = fdata[i].value;
                         }
-                        console.log('tmpdata',tmpdata);
-                        let index = layer.load(0, {shade: false});
-                        chrome.extension.sendRequest({type: "saveSetting", data:tmpdata}, function(r){
-                            layer.close(index);
-                            if(r){
-                                form.hide();
-                                layer.msg('保存成功，感谢您对插件的信任与支持！');
-                            } else {
-                                layer.msg('保存失败，请从新操作！');
-                            }
+                        chrome.storage.sync.set({tb_info:tmpdata}, function() {
+                            layer.msg('保存成功，感谢您对插件的信任与支持！');
+                            form.hide();
                         });
                     }
 

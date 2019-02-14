@@ -50,6 +50,7 @@ var Util = {
     qgPageOpenOnce:false,
     //抢购队列
     qgList:{},
+    proofTabId:0,
     currentQgKey:null,//当前抢购列表的key值
     currentQgCount:0,//当前抢购列表的商品数量
     currentQgSucNum:0,
@@ -99,6 +100,11 @@ var Util = {
                    chrome.tabs.create({
                        url:nowStimeList[keyArr[0]].url,
                        selected:false
+                   }, tab => {
+                       if (Util.proofTabId) {
+                           chrome.tabs.remove(Util.proofTabId);
+                       }
+                       Util.proofTabId = tab.id;
                    });
                    console.log("开启一个聚划算产品页面",nowStimeList[keyArr[0]].url);
                    //做一个2分钟的心跳 以便判断是否还有打开的聚划算页面在与后台通信
@@ -454,9 +460,10 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
             let url = sessionStorage['src_url_'+id];
             //如果 这个商品是抢购商品的话 直接跳往用户选择好的sku连接 若是直接跳往手机端的连接 就走 src_url
             if (localStorage['qg_'+id] &&
-                (details.url.indexOf("//detail.m.") != -1 || details.url.indexOf('h5.m.taobao.com/awp/core/detail') != -1)) {
+                (details.url.indexOf("//detail.m.") == -1 && details.url.indexOf('h5.m.taobao.com/awp/core/detail') == -1)) {
                 let qgInfo = JSON.parse(localStorage['qg_'+id]);
                 url = qgInfo.url;
+                console.log('跳转',url);
             }
             sessionStorage.removeItem('src_url_'+id);
             sessionStorage['tab_stime'+id] = new Date().getTime();
@@ -473,6 +480,9 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
 
 //监听tab关闭
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
+    if (tabId == Util.proofTabId) {
+        Util.proofTabId = 0;
+    }
     //如果tab cache中存有num_iid 则把 tab_num_iid 的缓存清理 防止下次打开报错
     if (Util.tabNumIidCache[tabId]) {
         let id = Util.tabNumIidCache[tabId];

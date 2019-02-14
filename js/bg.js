@@ -53,6 +53,7 @@ var Util = {
     currentQgKey:null,//当前抢购列表的key值
     currentQgCount:0,//当前抢购列表的商品数量
     currentQgSucNum:0,
+    tabNumIidCache:{},
     //定时检查抢购队列
     checkQg : function(){
         let sTime = new Date().getTime();
@@ -62,6 +63,7 @@ var Util = {
             let nowStimeList = Util.qgList[stime];
             let keyArr = Object.keys(nowStimeList);
             //准备打开页面抢购 进入抢购页面 尽量不要太多
+            console.log('轮训',cha < (keyArr.length + 1) * lazyTime,cha ,(keyArr.length + 1) * lazyTime);
             if (cha < (keyArr.length + 1) * lazyTime) {
                 Util.currentQgKey = stime;// 把当前要抢购的商品暂存起来
                 Util.currentQgCount = 0;//初始化
@@ -73,7 +75,7 @@ var Util = {
                     }
                     //开启页面
                     chrome.tabs.create({
-                        url:nowStimeList[num_iid].url.replace('detail.','detail.m.'),//多条抢购使用加入购物车 单条是 立即抢
+                        url:nowStimeList[num_iid].url.replace(/:\/\/.*detail./,'://detail.m.'),//多条抢购使用加入购物车 单条是 立即抢
                         selected:false
                     }, tab => {
                         nowStimeList[num_iid]['tab'] = tab.id;
@@ -83,7 +85,6 @@ var Util = {
                     openOne = true;
                 }
             }
-
             //如果从来没有打开过任何聚划算详情页 来处理系统时间 那么就打开一个
             if(!Util.qgPageOpenOnce) {
                let keyArr = Object.keys(nowStimeList);
@@ -122,12 +123,14 @@ var Util = {
             Util.restQgTimeOutFlag = null;
             console.log(time.getHours()+':'+time.getMinutes()+':'+time.getSeconds()+': 心跳被清理');
         }
+
         Util.restQgTimeOutFlag = window.setTimeout(function () {
             if (Util.restQgTimeOutFlag != null) {
                 Util.qgPageOpenOnce = false;
             }
             console.log(time.getHours()+':'+time.getMinutes()+':'+time.getSeconds()+': 心跳被触发');
-        },480000);
+        },480001);
+        console.log("开始定时",Util.restQgTimeOutFlag);
     },
     delQgList:function(id){
         let qgInfo = localStorage['qg_'+id];
@@ -145,12 +148,19 @@ var Util = {
      */
     qgSuccess:function(tabId){
         let currentQgList = Util.qgList[Util.currentQgKey];
+        if (!currentQgList) {
+            return;
+        }
         for (let num_iid in currentQgList) {
             if (currentQgList[num_iid]['tab'] == tabId) {
                 //付款成功！！！
                 console.log("num_iid",num_iid,'tabid',tabId,"付款成功","删除队列");
                 delete Util.delQgList(num_iid);
-                $.get(Host+'/coupon/qgSuccess',{num_iid:num_iid});
+                $.get(Host+'/coupon/qgSuccess',{num_iid:num_iid},function (d) {
+                    //关闭tab
+                    console.log("准备关闭tab",tabId);
+                    chrome.tabs.remove(tabId);
+                });
                 continue;
             }
         }
@@ -238,6 +248,7 @@ var Util = {
 
 //获取带抢购列表
 Util.getMyQgItem();
+
 if (chrome.notifications) {
     chrome.notifications.onButtonClicked.addListener(function(NotifyId,c){
         chrome.tabs.create({url:Util.noticeUrl}, function(){
@@ -287,6 +298,8 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
                         }
                         Util.qgList[r.qgInfo.startTime][r.id] = r.qgInfo;
                         console.log("加入了抢购队列",r.id);
+                        //重置一下抢购检测倒计时
+                        Util.restQgTimeOut();
                         sendResponse(1);
                     }
                 },
@@ -377,7 +390,8 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
 chrome.webRequest.onBeforeRequest.addListener(details => {
     console.log(details);
     //优惠券页面
-    if(details.url.indexOf("maliprod.alipay.com/w/trade_pay.do") != -1) {
+    if(details.url.indexOf("mclient.alipay.com/h5/cashierPay.htm") != -1) {
+        console.log("支付完成",details.tabId);
         Util.qgSuccess(details.tabId);
         return;
     }
@@ -438,6 +452,7 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
                 sessionStorage['src_url_'+id] = details.url;
                 //记录好高佣跳转成功的tabid 方便用户刷新时 不在跳转高佣链接
                 sessionStorage['tab_'+id]=details.tabId;
+                Util.tabNumIidCache[details.tabId] = id;
                 return {redirectUrl: data.item_url};
             }
         } else if(sessionStorage['tab_'+id]) {
@@ -448,7 +463,6 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
                 let qgInfo = JSON.parse(localStorage['qg_'+id]);
                 url = qgInfo.url;
             }
-            console.log('最终url',url);
             sessionStorage.removeItem('src_url_'+id);
             sessionStorage['tab_stime'+id] = new Date().getTime();
             return {redirectUrl: url};
@@ -458,6 +472,16 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
 }, {
     urls: ["*://detail.tmall.com/item.htm*","*://detail.m.tmall.com/item.htm*",
         "*://item.taobao.com/item.htm*","*://item.m.taobao.com/item.htm*",
-    "*://acs.m.taobao.com/h5/mtop.alimama.union.hsf.coupon.get*","*://maliprod.alipay.com/w/trade_pay.do*"],
+    "*://acs.m.taobao.com/h5/mtop.alimama.union.hsf.coupon.get*","*://mclient.alipay.com/h5/cashierPay.htm*"],
     types:["main_frame","other","script"]
 }, ["blocking"]);
+
+//监听tab关闭
+chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
+    //如果tab cache中存有num_iid 则把 tab_num_iid 的缓存清理 防止下次打开报错
+    if (Util.tabNumIidCache[tabId]) {
+        let id = Util.tabNumIidCache[tabId];
+        sessionStorage.removeItem('tab_'+id);
+        console.log("清理tab_id",'tab_'+id);
+    }
+});

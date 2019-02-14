@@ -45,7 +45,7 @@ chrome.extension.sendRequest({type: "getSetting"},r => {
                    for (let i in pw) {
                        Podium.keyup(pw[i]*1+96);
                    }
-
+                    Podium.keyup(13);
                 }).click();
             });
         } else {

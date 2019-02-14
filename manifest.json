@@ -39,15 +39,15 @@
     },
     {
       "matches" : ["*://detail.m.tmall.com/*"],
-      "js": ["js/jquery.js","js/qg.js"]
+      "js": ["js/zepto.min.js","js/qg.js"]
     },
     {
       "matches": ["*://buy.m.tmall.com/order/confirmOrderWap*"],
-      "js": ["js/jquery.js","js/buySubmit.js"]
+      "js": ["js/zepto.min.js","js/buySubmit.js"]
     },
     {
       "matches": ["*://maliprod.alipay.com/w/trade_pay.do*"],
-      "js": ["js/jquery.js","js/pay.js"]
+      "js": ["js/zepto.min.js","js/pay.js"]
     }
   ],
 "permissions": [

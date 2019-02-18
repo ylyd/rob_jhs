@@ -16,6 +16,7 @@ chrome.extension.sendRequest({type: "getLocalQgItemById", id:qgId}, function(r){
         qgInfo = JSON.parse(r.info);
     }
 });
+
 $(function () {
     let id = qgId;
     var itemInfo = null;
@@ -51,7 +52,8 @@ $(function () {
                     itemInfo = {
                         num_iid:id,
                         title:item.title,
-                        images:item.images,
+                        images:item.images.slice(0,2),
+                        price:0
                     };
                     var info = JSON.parse(d.data.apiStack[0].value);
                     console.log('info', info);
@@ -91,6 +93,11 @@ $(function () {
             }
         },
         error:function (xhr,status,error) {
+            layer.confirm('页面似乎遇到了一点错误，是否从新加载？', {
+                btn: ['嗯！确定','不了'] //按钮
+            }, function(){
+                location.reload();
+            });
             console.log("错误提示： " + xhr.status + " " + xhr.statusText,error);
         }
     });
@@ -235,6 +242,16 @@ $(function () {
             }
             //点击加入抢购按钮的逻辑
             countDown.kqBtn.click(function () {
+                //首先判断用户是否登录过关注了微信号
+                chrome.storage.sync.get('tb_info', function(r) {
+                    if (r && !r['tb_info']) {
+                        //没有注册或者信息不完善就必须先 关注微信号 填写信息才能加入抢购
+                        qgDomParent.find("#qg_setting").click();
+                        layer.msg('请先关注微信号 且 完善登录信息在加入购买');
+                    }
+                });
+                    //可以点击
+
                 let txt = countDown.kqBtn.text();
                 if (txt != "取消定时抢购") {
                     //todo 跟bg.js通信 把商品信息传入 成功后改变文字
@@ -259,6 +276,7 @@ $(function () {
                 } else{
                     addQgList.cancel();
                 }
+
             });
             qgDomParent.addClass('J_ButtonWaitWrap').data('ok',1);
             console.log("初始化成功！");
@@ -315,17 +333,17 @@ $(function () {
             var sTime = new Date().getTime();
             $.getJSON(jhsNowTimeInfoUrl, function (d) {
                 console.log('jhs',d);
-                if (d) {
+                if (d && d.data) {
                     let eTime = new Date().getTime();
                     // countDown.lazyTimeArr.push(eTime-sTime);
                     countDown.info.systemTime = d.data.time*1 + (eTime-sTime);
                     // let arrayAverage = countDown.lazyTimeArr.reduce((acc, val) => acc + val, 0) / countDown.lazyTimeArr.length;
                     //通知后台 校验时间的准确
-                    chrome.extension.sendRequest({type: "tbLoginProof",
-                        data:{isLogin:d.data.isLogin,systemTime:countDown.info.systemTime,sTime:eTime}
-                    });
+                    if (d.data.isLogin == 0) {
+                        chrome.extension.sendRequest({type: "mustLogin"});
+                    }
                 }
-                setTimeout(countDown.proof,1000*120);
+                //setTimeout(countDown.proof,1000*120);
             });
             // console.log("countDown.lazyTimeArr",countDown.lazyTimeArr);
             // //随机弹出
@@ -360,9 +378,10 @@ $(function () {
                 return;
             }
             let index = layer.load(0, {shade: false});
+            itemInfo['price']=$(".tm-promo-price .tm-price").text();
             chrome.extension.sendRequest({type: "addQgList", id:qgId,qgInfo:qgInfo,itemInfo:itemInfo}, function(r){
                 layer.close(index);
-                if(r){
+                if(r.status == 1){
                     countDown.kqBtn.removeClass('qg-red-btn').text("取消定时抢购");
                     $("#J_ImgBooth").clone().appendTo('body').addClass('piaoyi')
                         .animate({
@@ -375,6 +394,35 @@ $(function () {
                         $(this).remove();
                     });
                     layer.msg('恭喜你，加入定时抢购成功！');
+                } else if(data.status == -1) {
+                    //需要用户登录
+                    layer.open({
+                        type: 1,
+                        title: '微信扫码免费注册/登陆',
+                        shadeClose: true,
+                        shade: 0.8,
+                        area: ['380px', '470px'],
+                        content:'<div id="qg_wx_login"></div>',
+                        success:function(lay,index){
+                            var obj = new WxLogin({
+
+                                id:"qg_wx_login",
+
+                                appid: "wxbdc5610cc59c1631",
+
+                                scope: "snsapi_login",
+
+                                redirect_uri: "https%3A%2F%2Fpassport.yhd.com%2Fwechat%2Fcallback.do",
+
+                                state: "3d6be0a4035d839573b04816624a415e",
+
+                                style: "",
+
+                                href: ""
+
+                            });
+                        }
+                    });
                 }
             });
         },

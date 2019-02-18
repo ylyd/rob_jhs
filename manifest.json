@@ -25,7 +25,7 @@
         "*://h5.m.taobao.com/awp/core/detail.htm*"
       ],
       "css": ["css/content.css","css/minippfix.css"],
-      "js": ["js/jquery.js","js/layer/layer.js","js/content.js"]
+      "js": ["js/jquery.js","js/layer/layer.js","js/wxLogin.js","js/content.js"]
     },
     {
       "matches": [

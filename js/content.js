@@ -394,7 +394,7 @@ $(function () {
                         $(this).remove();
                     });
                     layer.msg('恭喜你，加入定时抢购成功！');
-                } else if(data.status == -1) {
+                } else if(r.status == -1) {
                     //需要用户登录
                     layer.open({
                         type: 1,
@@ -402,19 +402,21 @@ $(function () {
                         shadeClose: true,
                         shade: 0.8,
                         area: ['380px', '470px'],
-                        content:'<div id="qg_wx_login"></div>',
+                        content:'<div id="qg_wx_login" style="padding-left: 41px;"></div>',
                         success:function(lay,index){
                             var obj = new WxLogin({
 
+                                self_redirect:true,
+
                                 id:"qg_wx_login",
 
-                                appid: "wxbdc5610cc59c1631",
+                                appid: r.data['appkey'],
 
                                 scope: "snsapi_login",
 
-                                redirect_uri: "https%3A%2F%2Fpassport.yhd.com%2Fwechat%2Fcallback.do",
+                                redirect_uri: r.data['redirect_uri'],
 
-                                state: "3d6be0a4035d839573b04816624a415e",
+                                state: r.data['user_token'],
 
                                 style: "",
 

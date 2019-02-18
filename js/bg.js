@@ -360,15 +360,16 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
                 success:function (d) {
                     if (d.status == 1){
                         localStorage['qg_'+r.id] = JSON.stringify(r.qgInfo);
-                        Util.setBadge(d.data);
+                        Util.setBadge(d.data['count']);
                         //加入变量队列
                         if (!Util.qgList[r.qgInfo.startTime]) {
                             Util.qgList[r.qgInfo.startTime] = {};
                         }
                         Util.qgList[r.qgInfo.startTime][r.id] = r.qgInfo;
                         console.log("加入了抢购队列",r.id);
-                        sendResponse(1);
                     }
+                    d.data['user_token'] = USER_TOKEN;
+                    sendResponse(d);
                 },
                 error:function (xhr,status,error) {
                     console,log("错误提示： " + xhr.status + " " + xhr.statusText);

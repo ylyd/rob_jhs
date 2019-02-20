@@ -373,7 +373,7 @@ $(function () {
                 }
             }
             qgInfo.count = $((isTaoBaoPage ? "#J_IptAmount" : "#J_Amount")+" .mui-amount-input").val();
-            qgInfo.startTime = countDown.info.startTime;
+            qgInfo['start_time'] = countDown.info.startTime;
             if(addQgList.propSelectFlag) {
                 return;
             }

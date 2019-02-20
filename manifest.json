@@ -46,6 +46,10 @@
       "js": ["js/zepto.min.js","js/tbqg.js"]
     },
     {
+      "matches" : ["*:https://h5.m.taobao.com/mlapp/cart*"],
+      "js": ["js/zepto.min.js","js/car.js"]
+    },
+    {
       "matches": ["*://buy.m.tmall.com/order/confirmOrderWap*","*://h5.m.taobao.com/cart/order*"],
       "js": ["js/zepto.min.js","js/buySubmit.js"]
     },

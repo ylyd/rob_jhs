@@ -77,16 +77,29 @@ var Util = {
     currentQgSucNum:0,
     tabNumIidCache:{},
     currentNumIid:0,
+    openCartabTd:0,
     //定时检查抢购队列
+    timestampToTime:function(timestamp) {
+        var date = new Date(timestamp);//时间戳为10位需*1000，时间戳为13位的话不需乘1000
+        Y = date.getFullYear() + '-';
+        M = (date.getMonth()+1 < 10 ? '0'+(date.getMonth()+1) : date.getMonth()+1) + '-';
+        D = date.getDate() + ' ';
+        h = date.getHours() + ':';
+        m = date.getMinutes() + ':';
+        s = date.getSeconds();
+        return Y+M+D+h+m+s;
+    },
+    checkQgLazyTime:20000,
     checkQg : function(){
         let sTime = new Date().getTime();
-        let lazyTime = 20000;
+        //console.log("本地时间 - 淘宝时间", Util.timestampToTime(sTime),'-',Util.timestampToTime(Util.systemTime),sTime - Util.systemTime);
+        let lazyTime = Util.checkQgLazyTime;
         for(let stime in Util.qgList) {
             let cha = stime*1 - Util.systemTime;
             let nowStimeList = Util.qgList[stime];
             let keyArr = Object.keys(nowStimeList);
             //准备打开页面抢购 进入抢购页面 尽量不要太多
-            if (cha <= (keyArr.length + 1) * lazyTime) {
+            if (cha <= (keyArr.length + 2) * lazyTime) {
                 Util.currentQgKey = stime;// 把当前要抢购的商品暂存起来
                 Util.currentQgCount = 0;//初始化
                 let openOne = false;
@@ -97,11 +110,12 @@ var Util = {
                     }
                     //开启页面
                     let url = nowStimeList[num_iid].url;
+                    let car = keyArr.length > 1 ? '&decision=cart' : '';
                     if (url.indexOf('item.taobao.com/item') != -1) {
                         //判断是淘宝的商品
-                        url = 'https://h5.m.taobao.com/awp/core/detail.htm?'+(url.split('?')[1]);
+                        url = 'https://h5.m.taobao.com/awp/core/detail.htm?'+(url.split('?')[1])+car;
                     } else {
-                        url = url.replace(/:\/\/.*detail./,'://detail.m.');
+                        url = url.replace(/:\/\/.*detail./,'://detail.m.')+car;
                     }
 
                     chrome.tabs.create({
@@ -116,6 +130,17 @@ var Util = {
                     //每次只开启一个页面
                     openOne = true;
                 }
+                if (keyArr.length > 1 && !openOne && !Util.openCartabTd) {
+                    //todo 打开购物车页面监听
+                    let url ='https://h5.m.taobao.com/mlapp/cart.html?cartfrom=detail';
+                    chrome.tabs.create({
+                        url:url,//多条抢购使用加入购物车 单条是 立即抢
+                        selected:false
+                    }, tab => {
+                        Util.openCartabTd = tab.id;
+                        //console.log('打开了手机购物车',Util.openCartabTd);
+                    });
+                }
             }
 
             if (keyArr.length>0) {
@@ -127,8 +152,34 @@ var Util = {
         //lazyTime秒检测一次 相当于lazyTime 秒后打开一个抢购的商品
         setTimeout(Util.checkQg, lazyTime);
     },
+    getBjTime:function(){
+        let sTime = new Date().getTime();
+        $.get('http://bjtime.cn/nt.asp',function (d) {
+            let eTime = new Date().getTime();
+            d*=1;
+            console.log("用时",eTime-sTime,"本地时间 - 北京时间", Util.timestampToTime(eTime),'-',Util.timestampToTime(d),eTime - d);
+        });
+    },
+    getAliTime:function(){
+        $.ajax({
+            url:"https://t.alicdn.com/t/gettime?_ksTS=1550640840498_182&callback=jsonp183",
+            method:'GET',
+            dataType:'text',
+            timeout:1000,
+            success:function (d) {
+                if (d.indexOf('jsonp183(')!=-1){
+                    d = JSON.parse(d.slice(d.indexOf('(') + 1,-1));
+                    d=d.time*1000;
+                    console.log("阿里时间戳",Util.timestampToTime(d));
+                }
+            },
+            error:function (xhr,status,error) {
+                console.log("错误提示： " + xhr.status + " " + xhr.statusText,error);
+            }
+        });
+    },
     //定时器标识
-    qgPageOpenOnceTime:3*60*1000,
+    qgPageOpenOnceTime:2*60*1000,
     //重置心跳包
     getTbTime:function(){
         var qgKeyArr = Object.keys(Util.qgList);
@@ -138,11 +189,14 @@ var Util = {
             return;
         }
         let jhsNowTimeInfoUrl = 'https://dskip.ju.taobao.com/detail/json/item_dynamic.htm?item_id='+Util.currentNumIid;
-        var sTime = new Date().getTime();
+        var sTime = 0;
         $.ajax({
             url:jhsNowTimeInfoUrl,
             dataType:'json',
-            success:function (d) {
+            beforeSend:function(xhr){
+                sTime = new Date().getTime();
+            },
+            success:function (d,status,xhr) {
                 if (d && d.data) {
                     //登录淘宝 跟时间校验 有要抢的宝贝 且 当前时间<= 抢购时间 且 当前时间 >= 抢购时间-两（防止漏掉）个轮训时间
                     let minStime = Util.arrayMin(qgKeyArr);
@@ -154,13 +208,27 @@ var Util = {
                         Util.loginTb();
                     }
                     let eTime = new Date().getTime();
-                    Util.systemTime = d.data.time*1 + (eTime-sTime);
+                    let tbTime = d.data.time*1;
+                    Util.systemTime = tbTime + 2;
+                    let cheDTime = Util.checkQgLazyTime * Object.keys(Util.qgList[minStime]).length;
+                    cheDTime = Math.max(1800000,cheDTime);//取一个大的
+                    if (Util.systemTime < minStime - cheDTime) {
+                        Util.qgPageOpenOnceTime = minStime - Util.systemTime;
+                        console.log("在",Util.qgPageOpenOnceTime,'后开始在调用淘宝接口对时间',cheDTime);
+                    } else {
+                        Util.qgPageOpenOnceTime = 2*60*1000;
+                        console.log("从新恢复正常时间间隔调用淘宝接口",Util.qgPageOpenOnceTime);
+                    }
+                    console.log("用时",eTime-sTime,"本地时间 -淘宝时间", Util.timestampToTime(eTime),'-',Util.timestampToTime(tbTime),eTime - tbTime);
                 }
             },
             error:function (xhr,status,error) {
                 console.log("错误提示： " + xhr.status + " " + xhr.statusText);
             },
             complete : function(XMLHttpRequest,status){ //请求完成后最终执行参数
+                let eTime = new Date().getTime();
+                console.log("complete用时",eTime-sTime, Util.timestampToTime(eTime));
+
                 if(status == 'timeout'){
                     console.log("请求超时，请稍后再试！",'','error');
                 }
@@ -197,8 +265,8 @@ var Util = {
         });
     },
     delQgList:function(id){
-        let qgInfo = localStorage['qg_'+id];
-        localStorage.removeItem('qg_'+id);
+        let qgInfo = sessionStorage['qg_'+id];
+        sessionStorage.removeItem('qg_'+id);
         //删除变量队列
         if (qgInfo) {
             qgInfo = JSON.parse(qgInfo);
@@ -215,22 +283,50 @@ var Util = {
         if (!currentQgList) {
             return;
         }
-        for (let num_iid in currentQgList) {
-            if (currentQgList[num_iid]['tab'] == tabId) {
-                //付款成功！！！
-                console.log("num_iid",num_iid,'tabid',tabId,"付款成功","删除队列");
-                delete Util.delQgList(num_iid);
-                $.get(Host+'/coupon/qgSuccess',{num_iid:num_iid,user_token:USER_TOKEN},function (d) {
-                    //关闭tab
-                    console.log("准备关闭tab",tabId);
-                    setTimeout(function () {
-                        chrome.tabs.remove(tabId);
-                    },10000);
 
-                });
-                continue;
+        //跟购物车结算的tab是一个的话 代表全部抢购结算
+        if (tabId == Util.openCartabTd) {
+            
+            let num_iidArr = [];
+            for (let num_iid in currentQgList) {
+                if (currentQgList[num_iid]['tab']) {
+                    num_iidArr.push(num_iid);
+                    try {
+                        chrome.tabs.remove(currentQgList[num_iid]['tab']);
+                    } catch (e) {
+                        // 关闭失败
+                        console.log("关闭tab失败",currentQgList[num_iid]['tab']);
+                    }
+                    
+                }
+            }
+
+            $.get(Host+'/coupon/qgSuccess',{num_iid:num_iidArr.join(','),user_token:USER_TOKEN},function (d) {
+                //关闭tab
+                console.log("批量提交",d);
+                setTimeout(function () {
+                    chrome.tabs.remove(tabId);
+                },10000);
+            });
+        } else {
+            for (let num_iid in currentQgList) {
+                if (currentQgList[num_iid]['tab'] == tabId) {
+                    //付款成功！！！
+                    console.log("num_iid",num_iid,'tabid',tabId,"付款成功","删除队列");
+                    delete Util.delQgList(num_iid);
+                    $.get(Host+'/coupon/qgSuccess',{num_iid:num_iid,user_token:USER_TOKEN},function (d) {
+                        //关闭tab
+                        console.log("准备关闭tab",tabId);
+                        setTimeout(function () {
+                            chrome.tabs.remove(tabId);
+                        },10000);
+
+                    });
+                    break;
+                }
             }
         }
+
         if (Object.keys(currentQgList).length == 0) {
             //删除当前时间的抢购列表
             delete Util.qgList[Util.currentQgKey];
@@ -306,10 +402,46 @@ var Util = {
             }
         }
     },
+    initQgList:function(list) {
+        for(let i in list) {
+            Util.pushQgInfo(list[i]);
+        }
+    },
+    pushQgInfo:function(qgInfo){
+        sessionStorage['qg_'+qgInfo.num_iid] = JSON.stringify(qgInfo);
+
+        //加入变量队列
+        if (!Util.qgList[qgInfo['start_time']]) {
+            Util.qgList[qgInfo['start_time']] = {};
+        }
+        Util.qgList[qgInfo['start_time']][qgInfo.num_iid] = qgInfo;
+    },
     //获取用户未抢购成功的商品列表
     getMyQgItem:function () {
-        Util.checkQg();
-        Util.getTbTime();
+        $.ajax({
+            url:Host+'/coupon/getMyQgItem',
+            data:{user_token:USER_TOKEN},
+            dataType:'json',
+            timeout:2500,
+            success:function (d) {
+                if (d.status == 1) {
+                    Util.initQgList(d.data.data);
+                    Util.setBadge(d.data.count);
+                    Util.checkQg();
+                   Util.getTbTime();
+                }
+
+            },
+            error:function (xhr,status,error) {
+                console.log("错误提示： " + xhr.status + " " + xhr.statusText);
+            },
+            complete : function(XMLHttpRequest,status){ //请求完成后最终执行参数
+                if(status == 'timeout'){
+                    console.log("请求超时，请稍后再试！",'','error');
+                }
+            }
+        });
+
     },
     setBadge:function (txt) {
         chrome.browserAction.setBadgeText({text: txt+''});
@@ -346,7 +478,7 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
            break;
            //获取当前商品是否在抢购列表中
         case 'getLocalQgItemById':
-            sendResponse({info:localStorage['qg_'+r.id], systemTime:Util.systemTime,pageStime:sessionStorage['tab_stime'+r.id]});
+            sendResponse({info:sessionStorage['qg_'+r.id], systemTime:Util.systemTime,pageStime:sessionStorage['tab_stime'+r.id]});
             break;
             //加入抢购队列
         case 'addQgList':
@@ -359,13 +491,9 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
                 timeout:1000,
                 success:function (d) {
                     if (d.status == 1){
-                        localStorage['qg_'+r.id] = JSON.stringify(r.qgInfo);
+                        r.qgInfo['num_iid'] = r.id;
+                        Util.pushQgInfo(r.qgInfo);
                         Util.setBadge(d.data['count']);
-                        //加入变量队列
-                        if (!Util.qgList[r.qgInfo.startTime]) {
-                            Util.qgList[r.qgInfo.startTime] = {};
-                        }
-                        Util.qgList[r.qgInfo.startTime][r.id] = r.qgInfo;
                         console.log("加入了抢购队列",r.id);
                     }
                     d.data['user_token'] = USER_TOKEN;
@@ -389,7 +517,7 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
                 timeout:1000,
                 success:function (d) {
                     if (d.status == 1){
-                        Util.setBadge(d.data);
+                        Util.setBadge(d.data.count);
                         Util.delQgList(r.id);
                         console.log("取消了抢购队列",r.id);
                         sendResponse(1);
@@ -411,8 +539,11 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
             sendResponse(Object.keys(Util.qgList[Util.currentQgKey]).join(','));
             break;
         case 'qgBegin':
-            let time = new Date();
-            console.log(time.getHours()+':'+time.getMinutes()+':'+time.getSeconds()+'打开了手机页面进行购买',r.id,r.systemTime - Util.systemTime);
+            Util.qgList[Util.currentQgKey][r.id]['qgBegin'] = true;
+            chrome.tabs.sendRequest(Util.openCartabTd, Object.keys(Util.qgList[Util.currentQgKey]),
+                r => {
+
+                });
             break;
         case 'mustLogin':
             Util.loginTb();
@@ -470,12 +601,12 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
                 Util.getGY({num_iid:id}, false);
                 if (!sessionStorage[id]) {
                     //如果 这个商品是抢购商品的话 直接跳往用户选择好的sku连接 若是直接跳往手机端的连接 就走 src_url
-                    if (localStorage['qg_'+id]) {
+                    if (sessionStorage['qg_'+id]) {
                         if (details.url.indexOf("//detail.m.") != -1 || details.url.indexOf('h5.m.taobao.com/awp/core/detail') != -1) {
                             console.log("-1 走这里手机抢购");
                             return;
                         }
-                        let qgInfo = JSON.parse(localStorage['qg_'+id]);
+                        let qgInfo = JSON.parse(sessionStorage['qg_'+id]);
                         console.log("-1 走这里");
                         return {redirectUrl: qgInfo.url};
                     }
@@ -496,9 +627,9 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
             //这里处理得是用户从高佣跳转后造成的页面跳转失败问题
             let url = sessionStorage['src_url_'+id];
             //如果 这个商品是抢购商品的话 直接跳往用户选择好的sku连接 若是直接跳往手机端的连接 就走 src_url
-            if (localStorage['qg_'+id] &&
+            if (sessionStorage['qg_'+id] &&
                 (url.indexOf("//detail.m.") == -1 && url.indexOf('h5.m.taobao.com/awp/core/detail') == -1)) {
-                let qgInfo = JSON.parse(localStorage['qg_'+id]);
+                let qgInfo = JSON.parse(sessionStorage['qg_'+id]);
                 url = qgInfo.url;
                 console.log('跳转_qg_url',url,details.url,sessionStorage['src_url_'+id]);
             } else {
@@ -523,6 +654,11 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
     if (tabId == Util.proofTabId) {
         Util.proofTabId = 0;
         console.log("清理Util.proofTabId",Util.proofTabId);
+    }
+
+    if (tabId == Util.openCartabTd) {
+        Util.openCartabTd = 0;
+        console.log("清理Util.openCartabTd",Util.openCartabTd);
     }
     //如果tab cache中存有num_iid 则把 tab_num_iid 的缓存清理 防止下次打开报错
     if (Util.tabNumIidCache[tabId]) {

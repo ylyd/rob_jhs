@@ -22,9 +22,19 @@ chrome.extension.sendRequest({type: "getLocalQgItemById", id:qgId}, function(r){
         var checkQg = function () {
             //如果抢购开始
             if (systemTime  >= qgInfo.startTime - 110) {
-                location.href = 'https://h5.m.taobao.com/cart/order.html?buildOrderVersion=3.0' +skuId+
-                    '&quantity='+qgInfo.count+'&itemId='+qgId+'&buyNow=true&exParams=%7B%22id%22%3A%22'+
-                    qgId+'%22%7D&spm=a2141.7c.buy.i0';
+                if (qgUrl.indexOf('decision=cart') != -1) {
+                    //淘宝的加入购物车
+                    if (qgUrl.indexOf('h5.m.taobao.com') != -1) {
+                        $(".bottom-bar .cart").click();
+                    } else {
+                        $(".footer .ok").click();
+                    }
+                } {
+                    location.href = 'https://h5.m.taobao.com/cart/order.html?buildOrderVersion=3.0' +skuId+
+                        '&quantity='+qgInfo.count+'&itemId='+qgId+'&buyNow=true&exParams=%7B%22id%22%3A%22'+
+                        qgId+'%22%7D&spm=a2141.7c.buy.i0';
+                }
+
             } else {
                 systemTime = 5 + systemTime;
                 setTimeout(checkQg,5);

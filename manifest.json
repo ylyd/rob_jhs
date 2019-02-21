@@ -22,7 +22,7 @@
     {
       "matches": [
         "*://detail.tmall.com/*","*://chaoshi.detail.tmall.com/*","*://item.taobao.com/item.htm*",
-        "*://h5.m.taobao.com/awp/core/detail.htm*"
+        "*://h5.m.taobao.com/awp/core/detail.htm*","*://detail.tmall.hk/*"
       ],
       "css": ["css/content.css","css/minippfix.css"],
       "js": ["js/jquery.js","js/layer/layer.js","js/wxLogin.js","js/content.js"]
@@ -46,7 +46,7 @@
       "js": ["js/zepto.min.js","js/tbqg.js"]
     },
     {
-      "matches" : ["*:https://h5.m.taobao.com/mlapp/cart*"],
+      "matches" : ["*://h5.m.taobao.com/mlapp/cart*"],
       "js": ["js/zepto.min.js","js/car.js"]
     },
     {

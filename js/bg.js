@@ -99,7 +99,7 @@ var Util = {
             let nowStimeList = Util.qgList[stime];
             let keyArr = Object.keys(nowStimeList);
             //准备打开页面抢购 进入抢购页面 尽量不要太多
-            if (cha <= (keyArr.length + 2) * lazyTime) {
+            if (cha >= (keyArr.length + 2) * lazyTime) {
                 Util.currentQgKey = stime;// 把当前要抢购的商品暂存起来
                 Util.currentQgCount = 0;//初始化
                 let openOne = false;
@@ -181,7 +181,11 @@ var Util = {
     //定时器标识
     qgPageOpenOnceTime:2*60*1000,
     //重置心跳包
+    getTbTimeFlag:0,
     getTbTime:function(){
+        if (Util.getTbTimeFlag) {
+            clearTimeout(Util.getTbTimeFlag);
+        }
         var qgKeyArr = Object.keys(Util.qgList);
         if (qgKeyArr.length == 0 || !Util.currentNumIid) {
             console.log('已经全部抢购完毕，列表为空');
@@ -232,7 +236,7 @@ var Util = {
                 if(status == 'timeout'){
                     console.log("请求超时，请稍后再试！",'','error');
                 }
-                setTimeout(Util.getTbTime,Util.qgPageOpenOnceTime);
+                Util.getTbTimeFlag = setTimeout(Util.getTbTime,Util.qgPageOpenOnceTime);
             }
         });
     },
@@ -272,6 +276,7 @@ var Util = {
             qgInfo = JSON.parse(qgInfo);
             if (Util.qgList[qgInfo.startTime] && Util.qgList[qgInfo.startTime][id]) {
                 delete Util.qgList[qgInfo.startTime][id];
+                Util.getTbTime();
             }
         }
     },
@@ -415,6 +420,7 @@ var Util = {
             Util.qgList[qgInfo['start_time']] = {};
         }
         Util.qgList[qgInfo['start_time']][qgInfo.num_iid] = qgInfo;
+        Util.getTbTime();
     },
     //获取用户未抢购成功的商品列表
     getMyQgItem:function () {
@@ -540,10 +546,14 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
             break;
         case 'qgBegin':
             Util.qgList[Util.currentQgKey][r.id]['qgBegin'] = true;
-            chrome.tabs.sendRequest(Util.openCartabTd, Object.keys(Util.qgList[Util.currentQgKey]),
-                r => {
+            Util.currentQgSucNum++;
+            if (Util.openCartabTd && Util.currentQgSucNum >= Object.keys(Util.qgList[Util.currentQgKey]).length) {
+                chrome.tabs.sendRequest(Util.openCartabTd, Object.keys(Util.qgList[Util.currentQgKey]),
+                    r => {
+                        console.log('刷新购物车开始提交',r);
+                    });
+            }
 
-                });
             break;
         case 'mustLogin':
             Util.loginTb();

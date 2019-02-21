@@ -6,7 +6,9 @@ chrome.storage.sync.get('tb_info', function(r) {
             $(function () {
                 $("#username").val(loginInfo.tb_username);
                 $("#password").val(loginInfo.tb_password);
-                $("#submit-btn").removeAttr('disabled').click();
+                $("#submit-btn").removeAttr('disabled').click(function () {
+                    console.log("触发了点击")
+                }).click();
             });
         }
     }

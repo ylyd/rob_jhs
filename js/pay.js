@@ -54,5 +54,7 @@ chrome.storage.sync.get('tb_info', function(r) {
     }
 });
 $(function () {
-    $("#cashierPreConfirm button.am-button").click();
+    $("#cashierPreConfirm button.am-button").click(function () {
+        console.log("触发了点击")
+    }).click();
 });

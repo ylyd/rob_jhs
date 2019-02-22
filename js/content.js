@@ -244,38 +244,43 @@ $(function () {
             countDown.kqBtn.click(function () {
                 //首先判断用户是否登录过关注了微信号
                 chrome.storage.sync.get('tb_info', function(r) {
-                    if (r && !r['tb_info']) {
+                    if (!(r && r['tb_info'] &&
+                        r['tb_info']['tb_username']&&r['tb_info']['tb_password']&&
+                        r['tb_info']['tb_password'])) {
                         //没有注册或者信息不完善就必须先 关注微信号 填写信息才能加入抢购
                         qgDomParent.find("#qg_setting").click();
-                        layer.msg('请先关注微信号 且 完善登录信息在加入购买');
-                    }
-                });
-                    //可以点击
-
-                let txt = countDown.kqBtn.text();
-                if (txt != "取消定时抢购") {
-                    //todo 跟bg.js通信 把商品信息传入 成功后改变文字
-                    //检测sku是否全部选中
-                    addQgList.propSelectFlag = false;
-                    prop.each(function (i,v) {
-                        let o = $(v);
-                        if(!o.find('li.tb-selected').get(0)) {
-                            addQgList.propSelectFlag = true;
-                            o.closest('.tb-prop').addClass('place-select-prop');
-                        } else {
-                            o.closest('.tb-prop').removeClass('place-select-prop');
-                        }
-                    });
-                    if (addQgList.propSelectFlag) {
-                        qgInfoAlert.show(100);
+                        layer.msg('完善登录、支付信息在加入购买');
                         return;
                     }
-                    addQgList.propSelectFlag = false;
-                    qgInfoAlert.hide(100);
-                    addQgList.add();
-                } else{
-                    addQgList.cancel();
-                }
+
+                    //可以点击
+
+                    let txt = countDown.kqBtn.text();
+                    if (txt != "取消定时抢购") {
+                        //todo 跟bg.js通信 把商品信息传入 成功后改变文字
+                        //检测sku是否全部选中
+                        addQgList.propSelectFlag = false;
+                        prop.each(function (i,v) {
+                            let o = $(v);
+                            if(!o.find('li.tb-selected').get(0)) {
+                                addQgList.propSelectFlag = true;
+                                o.closest('.tb-prop').addClass('place-select-prop');
+                            } else {
+                                o.closest('.tb-prop').removeClass('place-select-prop');
+                            }
+                        });
+                        if (addQgList.propSelectFlag) {
+                            qgInfoAlert.show(100);
+                            return;
+                        }
+                        addQgList.propSelectFlag = false;
+                        qgInfoAlert.hide(100);
+                        addQgList.add();
+                    } else{
+                        addQgList.cancel();
+                    }
+                });
+
 
             });
             qgDomParent.addClass('J_ButtonWaitWrap').data('ok',1);

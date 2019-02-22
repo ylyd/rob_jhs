@@ -7,8 +7,126 @@
     <link rel="stylesheet" href="css/popup.css">
 </head>
 <body>
+<div class="layui-tab layui-tab-brief" id="main">
+    <ul class="layui-tab-title">
+        <li v-for="(v,k) in tab.li" :class="{'layui-this':k==liSelectIndexLocal}" @click="tabSelect(k);">
+            <i v-if="v.icon" :class="[{ 'layui-icon': 1 }, v.icon]"></i> {{v.text}}
+            <span v-if="v.badge" :class="[v.badge.class]" >{{v.badge.text}}</span>
+        </li>
+    </ul>
+    <div class="layui-tab-content">
+        <div :class="{'layui-tab-item':1,'layui-show':liSelectIndexLocal==0}">
+            <table class="layui-table">
+                <colgroup>
+                    <col width="60">
+                    <col>
+                    <col width="170">
+                    <col width="130">
+                </colgroup>
+                <thead>
+                <tr>
+                    <th>图片</th>
+                    <th>标题</th>
+                    <th>抢购时间</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(v,k) in tab.li[0].data.data">
+                        <td><a :href="v.url" target="_blank">
+                            <img v-lazy="'https:'+tab.li[0].data.desc[v.num_iid].images[1]"
+                                 :key="'https:'+tab.li[0].data.desc[v.num_iid].images[1]" width="60">
+                            </a>
+                        </td>
+                        <td class="title">{{tab.li[0].data.desc[v.num_iid].title}}</td>
+                        <td>{{timestampToTime(v.start_time)}}</td>
+                        <td>
+                            <a class="layui-btn layui-btn-xs" :href="v.url" target="_blank">查看</a>
+                            <a class="layui-btn layui-btn-danger layui-btn-xs" @click="delQg(k)">删除</a>
+                        </td>
+                    </tr>
+
+                </tbody>
+            </table>
+            <div id="page0"></div>
+        </div>
+        <div :class="{'layui-tab-item':1,'layui-show':liSelectIndexLocal==1}">
+            <table class="layui-table">
+                <colgroup>
+                    <col width="60">
+                    <col>
+                    <col width="170">
+                    <col width="130">
+                </colgroup>
+                <thead>
+                <tr>
+                    <th>图片</th>
+                    <th>标题</th>
+                    <th>抢购时间</th>
+                    <th id="jb-info">金币 <i class="layui-icon layui-icon-rmb" style="color: #FFB800;"></i></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="(v,k) in tab.li[1].data.data">
+                    <td><a :href="v.url" target="_blank">
+                        <img v-lazy="'https:'+tab.li[1].data.desc[v.num_iid].images[1]"
+                             :key="'https:'+tab.li[1].data.desc[v.num_iid].images[1]" width="60">
+                    </a>
+                    </td>
+                    <td class="title">{{tab.li[1].data.desc[v.num_iid].title}}</td>
+                    <td>{{timestampToTime(v.start_time)}}</td>
+                    <td>
+                        <strong style="color: #FF5722;">0</strong>
+                    </td>
+                </tr>
+
+                </tbody>
+            </table>
+            <div id="page1"></div>
+        </div>
+        <div :class="{'layui-tab-item':1,'layui-show':liSelectIndexLocal==2}">
+            <table class="layui-table">
+                <colgroup>
+                    <col width="60">
+                    <col>
+                    <col width="170">
+                    <col width="130">
+                </colgroup>
+                <thead>
+                <tr>
+                    <th>图片</th>
+                    <th>标题</th>
+                    <th>价格</th>
+                    <th>买点</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="(v,k) in tab.li[2].data.data">
+                    <td><a :href="'https://detail.tmall.com/item.htm?id='+v.num_iid" target="_blank">
+                        <img v-lazy="'https:'+v.images[1]"
+                             :key="'https:'+v.images[1]" width="60">
+                    </a>
+                    </td>
+                    <td class="title">{{v.title}}</td>
+                    <td><strong style="color: #FF5722;">￥{{v.price}}</strong></td>
+                    <td>
+                        前一百名5折
+                    </td>
+                </tr>
+
+                </tbody>
+            </table>
+            <div id="page2"></div>
+        </div>
+        <div :class="{'layui-tab-item':1,'layui-show':liSelectIndexLocal==3}"></div>
+        <div :class="{'layui-tab-item':1,'layui-show':liSelectIndexLocal==4}"></div>
+    </div>
+</div>
+<script src="js/jquery.js"></script>
+<script src="js/vue-lazyload.js"></script>
 <script src="js/vue.min.js"></script>
 <script src="lib/layui/layui.js"></script>
+<script src="js/wxLogin.js"></script>
 <script src="js/popup.js"></script>
 </body>
 </html>

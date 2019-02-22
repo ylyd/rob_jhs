@@ -99,7 +99,8 @@ var Util = {
             let nowStimeList = Util.qgList[stime];
             let keyArr = Object.keys(nowStimeList);
             //准备打开页面抢购 进入抢购页面 尽量不要太多
-            if (cha >= (keyArr.length + 2) * lazyTime) {
+
+            if (cha <= (keyArr.length + 4) * lazyTime) {
                 Util.currentQgKey = stime;// 把当前要抢购的商品暂存起来
                 Util.currentQgCount = 0;//初始化
                 let openOne = false;
@@ -183,17 +184,18 @@ var Util = {
     //重置心跳包
     getTbTimeFlag:0,
     getTbTime:function(){
-        if (Util.getTbTimeFlag) {
-            clearTimeout(Util.getTbTimeFlag);
-        }
+
         var qgKeyArr = Object.keys(Util.qgList);
         if (qgKeyArr.length == 0 || !Util.currentNumIid) {
             console.log('已经全部抢购完毕，列表为空');
-            setTimeout(Util.getTbTime,Util.qgPageOpenOnceTime);
+            //setTimeout(Util.getTbTime,Util.qgPageOpenOnceTime);
             return;
         }
+        if (Util.getTbTimeFlag) {
+            clearTimeout(Util.getTbTimeFlag);
+        }
         let jhsNowTimeInfoUrl = 'https://dskip.ju.taobao.com/detail/json/item_dynamic.htm?item_id='+Util.currentNumIid;
-        var sTime = 0;
+        var sTime = 0,sLazyTime = 2*60*1000;
         $.ajax({
             url:jhsNowTimeInfoUrl,
             dataType:'json',
@@ -206,7 +208,7 @@ var Util = {
                     let minStime = Util.arrayMin(qgKeyArr);
 
                     if (d.data.isLogin == 0 && minStime &&
-                        d.data.time <= minStime && d.data.time >= minStime - 2 * Util.qgPageOpenOnceTime) {
+                        d.data.time <= minStime && d.data.time >= minStime - 2 * sLazyTime) {
                         console.log("这个时间需要淘宝登录");
                         //todo 提示登录
                         Util.loginTb();
@@ -220,7 +222,7 @@ var Util = {
                         Util.qgPageOpenOnceTime = minStime - Util.systemTime;
                         console.log("在",Util.qgPageOpenOnceTime,'后开始在调用淘宝接口对时间',cheDTime);
                     } else {
-                        Util.qgPageOpenOnceTime = 2*60*1000;
+                        Util.qgPageOpenOnceTime = sLazyTime;
                         console.log("从新恢复正常时间间隔调用淘宝接口",Util.qgPageOpenOnceTime);
                     }
                     console.log("用时",eTime-sTime,"本地时间 -淘宝时间", Util.timestampToTime(eTime),'-',Util.timestampToTime(tbTime),eTime - tbTime);
@@ -250,7 +252,9 @@ var Util = {
         return min;
     },
     loginTb:function(){
+        console.log("准备登陆");
         chrome.storage.sync.get('tb_info', function(r) {
+            console.log(r);
             if(r && r['tb_info']) {
                 let loginInfo = r['tb_info'];
                 if (loginInfo.tb_username && loginInfo.tb_password) {
@@ -264,6 +268,8 @@ var Util = {
                             chrome.tabs.remove(tab.id);
                         },5000);
                     });
+                } else {
+                    console.log("淘宝信息为空");
                 }
             }
         });
@@ -409,10 +415,10 @@ var Util = {
     },
     initQgList:function(list) {
         for(let i in list) {
-            Util.pushQgInfo(list[i]);
+            Util.pushQgInfo(list[i],true);
         }
     },
-    pushQgInfo:function(qgInfo){
+    pushQgInfo:function(qgInfo,flag){
         sessionStorage['qg_'+qgInfo.num_iid] = JSON.stringify(qgInfo);
 
         //加入变量队列
@@ -420,7 +426,9 @@ var Util = {
             Util.qgList[qgInfo['start_time']] = {};
         }
         Util.qgList[qgInfo['start_time']][qgInfo.num_iid] = qgInfo;
-        Util.getTbTime();
+        if(!flag){
+            Util.getTbTime();
+        }
     },
     //获取用户未抢购成功的商品列表
     getMyQgItem:function () {
@@ -475,6 +483,30 @@ if (chrome.notifications) {
 chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
     console.log(r);
     switch (r.type) {
+        case 'getPopupData':
+            r.param['user_token'] = USER_TOKEN;
+            $.ajax({
+                url:Host+'/'+r.action,
+                data:r.param,
+                dataType:'json',
+                timeout:2500,
+                method:r.method?r.method:'GET',
+                success:function (d) {
+                    if(d.status ==-1) {
+                        d.data['user_token'] = USER_TOKEN;
+                    }
+                    sendResponse(d);
+                },
+                error:function (xhr,status,error) {
+                    console.log("错误提示： " + xhr.status + " " + xhr.statusText);
+                },
+                complete : function(XMLHttpRequest,status){ //请求完成后最终执行参数
+                    if(status == 'timeout'){
+                        console.log("请求超时，请稍后再试！",'','error');
+                    }
+                }
+            });
+            break;
         //解析click url 跳转后的302 location
         case 'getClickUrl':
             if (sessionStorage[r.data.num_iid]) {
@@ -526,7 +558,7 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
                         Util.setBadge(d.data.count);
                         Util.delQgList(r.id);
                         console.log("取消了抢购队列",r.id);
-                        sendResponse(1);
+                        sendResponse(d);
                     }
                 },
                 error:function (xhr,status,error) {
@@ -550,7 +582,7 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
             if (Util.openCartabTd && Util.currentQgSucNum >= Object.keys(Util.qgList[Util.currentQgKey]).length) {
                 chrome.tabs.sendRequest(Util.openCartabTd, Object.keys(Util.qgList[Util.currentQgKey]),
                     r => {
-                        console.log('刷新购物车开始提交',r);
+                        console.log('刷新购物车开始提交');
                     });
             }
 

@@ -82,11 +82,28 @@ $(function () {
                         if (info.systemTime < info.startTime) {
                             //显示抢购倒计时
                             setTimeout(function () {
-                                countDown.go(info)
+                                countDown.go(info);
                             },1000);
                         } else if(qgInfo) {
                             //立即抢
                             console.log("立即抢");
+                        }
+                    } else {
+                        //没有获取到聚划算的节点 则 走滴定仪流程
+                        if (!isTaoBaoPage) {
+                            setTimeout(function () {
+                                let tbAction = $(".tb-action");
+                                tbAction.before('<div id="'+qgDomParentId+'" class="J_ButtonWaitWrap"></div>');
+                                if (qgInfo) {
+                                    info = {
+                                        endTime:0,
+                                        startTime:qgInfo.start_time,
+                                        systemTime:0
+                                    };
+                                }
+                                countDown.go(info);
+                            },1000);
+
                         }
                     }
                 }
@@ -115,7 +132,9 @@ $(function () {
             if(!qgDomParent.get(0)) {
                 return;
             }
+            console.log("初始化html");
             qgDomParent.html('<div class="qg-l-box"><span class="qg-kq-txt"><i class="fa fa-clock-o"></i> 开抢：</span><span id="qg_down_time"></span>' +
+                '<span id="qg_by_auto_time" title="您可以自定义抢购的时间进行抢购">自定义时间</span>'+
                 '<a id="qg_setting" title="使用前须知"><i class="fa fa-cogs"></i> 设置 & 帮助</a>' +
                 '<form method="post" id="qg_form"><div class="qg-gzh"><img src="//qr.api.cli.im/qr?data=http%253A%252F%252Fxiaoaidema.com&level=H&transparent=false&bgcolor=%23ffffff&forecolor=%23000000&blockpixel=12&marginblock=1&logourl=&size=260&kid=cliim&key=a8b261387b9f090b0f6c0a1bc3f48ae6">' +
                 '<br> <b>聚抢先公众号</b></div> <input type="hidden" name="tb_id"><input type="hidden" name="area_id">' +
@@ -146,9 +165,11 @@ $(function () {
                     skuArr.push($(v).attr('data-value'));
                 });
             }
+            console.log("初始化html - ok");
             if (qgDomParent.data('ok')) {
                 return;
             }
+            console.log("初始化事件");
             qgDomParent.on('click',"#qg_setting",function () {
                     let o = $(this),form = $("#qg_form");
                     if (!o.data('save')) {
@@ -200,7 +221,26 @@ $(function () {
                     //保存用户的设置
                     e.preventDefault();
                 });
+
             countDown.downTimeDom = qgDomParent.find('#qg_down_time');
+            $('#qg_by_auto_time').ECalendar({
+                type:"time",   //模式，time: 带时间选择; date: 不带时间选择;
+                stamp : true,   //是否转成时间戳，默认true;
+                offset:[0,2],   //弹框手动偏移量;
+                format:"yyyy-mm-dd hh:ii",   //时间格式 默认 yyyy-mm-dd hh:ii;
+                skin:3,   //皮肤颜色，默认随机，可选值：0-8,或者直接标注颜色值;
+                step:10,   //选择时间分钟的精确度;
+                callback:function(v,e){
+                    console.log(v,e);
+                    if (countDown.info.systemTime > v * 1000){
+                        layer.msg('你选择的开抢时间已经过去,请从新设定！');
+                        return;
+                    }
+
+                    qgInfo.start_time = countDown.info.startTime = v * 1000;
+                    addQgList.add();
+                } //回调函数
+            });
             countDown.kqBtn = qgDomParent.find("#kaiqiang_btn");
             qgDomParent.before('<div id="qg_info_alert" class="alert alert-danger">' +
                 '请在虚线框中选择好 <strong>属性</strong> 跟 <strong>够买数量</strong> 在继续加入抢购！</div>');
@@ -287,20 +327,23 @@ $(function () {
             console.log("初始化成功！");
         },
         go : function (info) {
-            console.log("开始倒计时",info);
+            console.log("开始倒计时 - go",info);
             this.init();
             this.info = info;
+
             this.timeDown();
             this.proof();
         },
         // 时间倒计时
         timeDown : function () {
-            let cha = countDown.info.startTime - countDown.info.systemTime,
-                leftTime = parseInt(cha / 1000);//获得时间差
-
             if(!qgDomParent.find("#qg_down_time").get(0)) {
                 countDown.init();
-            } else {
+            }
+            if (countDown.info.startTime) {
+                let cha = countDown.info.startTime - countDown.info.systemTime,
+                    leftTime = parseInt(cha / 1000);//获得时间差
+
+
                 //小时、分、秒需要取模运算
                 let d = parseInt(leftTime/86400),
                     h = parseInt(leftTime/3600%24),
@@ -317,23 +360,23 @@ $(function () {
                 if (m) {
                     txt += m+"分";
                 }
-                txt += s + "秒" + ms;
+                // txt += s + "秒" + ms;
+                txt += s + "秒";
                 countDown.downTimeDom.text(txt);
 
-            }
-
-            if(cha <= 1000){
-                //todo 开始抢购 开抢页面由bg.js统一打开处理
-                if (qgInfo) {
-                    //location.href = qgInfo.url.str_replace('detail.','detail.m.');
-                    return;
+                if(cha <= 1000){
+                    //todo 开始抢购 开抢页面由bg.js统一打开处理
+                    if (qgInfo) {
+                        //location.href = qgInfo.url.str_replace('detail.','detail.m.');
+                        return;
+                    }
                 }
             }
-            countDown.info.systemTime = countDown.info.systemTime*1 + 100;
-            setTimeout(countDown.timeDown,100);
+            countDown.info.systemTime = countDown.info.systemTime*1 + 1000;
+            setTimeout(countDown.timeDown,1000);
         },
         //每60s校对一次时间 并且判断是否掉线
-        proof:function () {
+        proof:function (flag) {
             let jhsNowTimeInfoUrl = '//dskip.ju.taobao.com/detail/json/item_dynamic.htm?item_id='+id;
             var sTime = new Date().getTime();
             $.getJSON(jhsNowTimeInfoUrl, function (d) {
@@ -348,14 +391,7 @@ $(function () {
                         chrome.extension.sendRequest({type: "mustLogin"});
                     }
                 }
-                //setTimeout(countDown.proof,1000*120);
             });
-            // console.log("countDown.lazyTimeArr",countDown.lazyTimeArr);
-            // //随机弹出
-            // if (countDown.lazyTimeArr.length>3){
-            //     let index = Math.floor(Math.random()*countDown.lazyTimeArr.length);
-            //     countDown.lazyTimeArr.splice(index,1)
-            // }
         }
     };
 
@@ -378,12 +414,16 @@ $(function () {
                 }
             }
             qgInfo.count = $((isTaoBaoPage ? "#J_IptAmount" : "#J_Amount")+" .mui-amount-input").val();
+            if (countDown.info.systemTime - 60000 > countDown.info.startTime){
+                layer.msg('加入失败。开抢时间已经过去,请从新设定！');
+                return;
+            }
             qgInfo['start_time'] = countDown.info.startTime;
             if(addQgList.propSelectFlag) {
                 return;
             }
             let index = layer.load(0, {shade: false});
-            itemInfo['price']=$(".tm-promo-price .tm-price").text();
+            itemInfo['price']=$(".tm-price").last().text();
             chrome.extension.sendRequest({type: "addQgList", id:qgId,qgInfo:qgInfo,itemInfo:itemInfo}, function(r){
                 layer.close(index);
                 if(r.status == 1){
@@ -421,7 +461,7 @@ $(function () {
 
                                 redirect_uri: r.data['redirect_uri'],
 
-                                state: r.data['user_token'],
+                                state: r.data['user_token']+'_'+r.data['user_fd'],
 
                                 style: "",
 

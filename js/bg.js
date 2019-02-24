@@ -30,7 +30,7 @@ try {
         switch (data.type) {
             //用户websocket连接成功 open 请求回来的首次登陆消息
             case 'set_fd':
-                localStorage['WS_OLD_FD'] = data.fd;
+                WSFD = localStorage['WS_OLD_FD'] = data.fd;
                 //获取带抢购列表
                 Util.getMyQgItem();
                 Util.setUserToken(data.user_token);
@@ -92,7 +92,7 @@ var Util = {
     checkQgLazyTime:20000,
     checkQg : function(){
         let sTime = new Date().getTime();
-        //console.log("本地时间 - 淘宝时间", Util.timestampToTime(sTime),'-',Util.timestampToTime(Util.systemTime),sTime - Util.systemTime);
+        console.log("本地时间 - 淘宝时间", Util.timestampToTime(sTime),'-',Util.timestampToTime(Util.systemTime),sTime - Util.systemTime);
         let lazyTime = Util.checkQgLazyTime;
         for(let stime in Util.qgList) {
             let cha = stime*1 - Util.systemTime;
@@ -184,16 +184,16 @@ var Util = {
     //重置心跳包
     getTbTimeFlag:0,
     getTbTime:function(){
-
-        var qgKeyArr = Object.keys(Util.qgList);
-        if (qgKeyArr.length == 0 || !Util.currentNumIid) {
-            console.log('已经全部抢购完毕，列表为空');
-            //setTimeout(Util.getTbTime,Util.qgPageOpenOnceTime);
-            return;
-        }
         if (Util.getTbTimeFlag) {
             clearTimeout(Util.getTbTimeFlag);
         }
+        var qgKeyArr = Object.keys(Util.qgList);
+        if (qgKeyArr.length == 0 || !Util.currentNumIid) {
+            console.log('已经全部抢购完毕，列表为空');
+            setTimeout(Util.getTbTime,Util.qgPageOpenOnceTime);
+            return;
+        }
+
         let jhsNowTimeInfoUrl = 'https://dskip.ju.taobao.com/detail/json/item_dynamic.htm?item_id='+Util.currentNumIid;
         var sTime = 0,sLazyTime = 2*60*1000;
         $.ajax({
@@ -312,7 +312,7 @@ var Util = {
                 }
             }
 
-            $.get(Host+'/coupon/qgSuccess',{num_iid:num_iidArr.join(','),user_token:USER_TOKEN},function (d) {
+            $.get(Host+'/coupon/qgSuccess',{num_iid:num_iidArr.join(','),user_token:USER_TOKEN,user_fd:WSFD},function (d) {
                 //关闭tab
                 console.log("批量提交",d);
                 setTimeout(function () {
@@ -325,7 +325,7 @@ var Util = {
                     //付款成功！！！
                     console.log("num_iid",num_iid,'tabid',tabId,"付款成功","删除队列");
                     delete Util.delQgList(num_iid);
-                    $.get(Host+'/coupon/qgSuccess',{num_iid:num_iid,user_token:USER_TOKEN},function (d) {
+                    $.get(Host+'/coupon/qgSuccess',{num_iid:num_iid,user_token:USER_TOKEN,user_fd:WSFD},function (d) {
                         //关闭tab
                         console.log("准备关闭tab",tabId);
                         setTimeout(function () {
@@ -494,6 +494,7 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
                 success:function (d) {
                     if(d.status ==-1) {
                         d.data['user_token'] = USER_TOKEN;
+                        d.data['user_fd'] = WSFD;
                     }
                     sendResponse(d);
                 },
@@ -535,6 +536,7 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
                         console.log("加入了抢购队列",r.id);
                     }
                     d.data['user_token'] = USER_TOKEN;
+                    d.data['user_fd'] = WSFD;
                     sendResponse(d);
                 },
                 error:function (xhr,status,error) {

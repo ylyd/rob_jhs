@@ -38,7 +38,7 @@
                                  :key="'https:'+tab.li[0].data.desc[v.num_iid].images[1]" width="60">
                             </a>
                         </td>
-                        <td class="title">{{tab.li[0].data.desc[v.num_iid].title}}</td>
+                        <td class="title"><div>{{tab.li[0].data.desc[v.num_iid].title}}</div></td>
                         <td>{{timestampToTime(v.start_time)}}</td>
                         <td>
                             <a class="layui-btn layui-btn-xs" :href="v.url" target="_blank">查看</a>
@@ -73,7 +73,7 @@
                              :key="'https:'+tab.li[1].data.desc[v.num_iid].images[1]" width="60">
                     </a>
                     </td>
-                    <td class="title">{{tab.li[1].data.desc[v.num_iid].title}}</td>
+                    <td class="title"><div>{{tab.li[1].data.desc[v.num_iid].title}}</div></td>
                     <td>{{timestampToTime(v.start_time)}}</td>
                     <td>
                         <strong style="color: #FF5722;">0</strong>
@@ -96,21 +96,37 @@
                 <tr>
                     <th>图片</th>
                     <th>标题</th>
-                    <th>价格</th>
-                    <th>买点</th>
+                    <th style="color: #5FB878;font-weight: bold">聚划算价</th>
+                    <th>
+                        <div class="select">
+                            <select @change="maiDianSelect" v-model="maiDianSelectValue" >
+                                <option value="">全部卖点</option>
+                                <option value="pre_people">前n名特价</option>
+                                <option value="pre_time">前n分钟优惠</option>
+                                <option value="order_reduction">下单立减</option>
+                                <option value="full_reduction">满减商品</option>
+                                <option value="second_discount">第n件打m折</option>
+                            </select>
+                        </div>
+                    </th>
                 </tr>
                 </thead>
                 <tbody>
-                <tr v-for="(v,k) in tab.li[2].data.data">
+                <tr v-for="(v,k) in tab.li[2].data.data" :title="v.jhs.usp_desc_list.join('  ')">
                     <td><a :href="'https://detail.tmall.com/item.htm?id='+v.num_iid" target="_blank">
-                        <img v-lazy="'https:'+v.images[1]"
-                             :key="'https:'+v.images[1]" width="60">
+                        <img v-lazy="'https:'+v.images[0]"
+                             :key="'https:'+v.images[0]" width="60">
                     </a>
                     </td>
-                    <td class="title">{{v.title}}</td>
-                    <td><strong style="color: #FF5722;">￥{{v.price}}</strong></td>
+                    <td class="title"><div>{{v.title}}</div></td>
+                    <td><strong class="price">￥{{v.price}}</strong>
+                        <span class="org-price">{{v.jhs.orig_price}}</span><br>
+                    <span class="hot-qiang">抢：{{timestampToTime(v.start_time*1000)}}</span>
+                    </td>
                     <td>
-                        前一百名5折
+                        <span class="layui-badge" v-for="(v1,k1) in v.jhs.price_usp_list">
+                            {{v1}}
+                        </span>
                     </td>
                 </tr>
 

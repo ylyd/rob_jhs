@@ -32,9 +32,13 @@ layui.use(['layer', 'form','element','laypage'], function(){
                     {icon:'layui-icon-rmb', text:'累计收益', badge: {text:3, class:'layui-badge-dot'},firstDataFlag:0},
                     {icon:'layui-icon-set', text:'基本设置',firstDataFlag:0},
                 ]
-            }
+            },
+            maiDianSelectValue:''
         },
         methods: {
+            maiDianSelect:function(){
+                console.log(this.maiDianSelectValue);
+            },
             timestampToTime:function(timestamp) {
                 var date = new Date(timestamp*1);//时间戳为10位需*1000，时间戳为13位的话不需乘1000
                 Y = date.getFullYear() + '-';
@@ -108,7 +112,7 @@ layui.use(['layer', 'form','element','laypage'], function(){
                         this.tab.li[k].firstDataFlag = 1;
                         if(r.status == 1){
                             this.tab.li[liSelectIndexLocal].data.data.splice(k,1);
-                            this.tab.li[liSelectIndexLocal].data.count--;
+                            this.tab.li[liSelectIndexLocal].badge.text = this.tab.li[liSelectIndexLocal].data.count = r.data['count'];
                             layer.msg(r.msg);
                         }
                     });
@@ -136,7 +140,7 @@ layui.use(['layer', 'form','element','laypage'], function(){
 
                             redirect_uri: r.data['redirect_uri'],
 
-                            state: r.data['user_token'],
+                            state: r.data['user_token']+'_'+r.data['user_fd'],
 
                             style: "",
 

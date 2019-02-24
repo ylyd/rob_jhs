@@ -1,2 +1,65 @@
 html,body{width: 600px;height: 550px;}
-.title {font-size: 12px;color: #666666;}
+.title {font-size: 12px;color: #666666; }
+.title div{
+    text-overflow: -o-ellipsis-lastline;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+p{position: relative; line-height: 20px; max-height: 40px;overflow: hidden;}
+p::after{content: "..."; position: absolute; bottom: 0; right: 0; padding-left: 40px;
+    background: -webkit-linear-gradient(left, transparent, #fff 55%);
+    background: -o-linear-gradient(right, transparent, #fff 55%);
+    background: -moz-linear-gradient(right, transparent, #fff 55%);
+    background: linear-gradient(to right, transparent, #fff 55%);}
+.hot-qiang{color: #1E9FFF;font-size: 11px;}
+.price{color: #FF5722;font-size: 18px;}
+.org-price{text-decoration: line-through;font-size: 11px;}
+.select {
+    display: inline-block;
+    position: relative;
+    vertical-align: middle;
+    padding: 0;
+    overflow: hidden;
+    background-color: #fff;
+    color: #555;
+    border: 1px solid #aaa;
+    text-shadow: none;
+    border-radius: 4px;
+    transition: box-shadow 0.25s ease;
+    z-index: 2;
+}
+
+.select:hover {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.select:before {
+    content: "";
+    position: absolute;
+    width: 0;
+    height: 0;
+    border: 5px solid transparent;
+    border-top-color: #ccc;
+    top: 11px;
+    right: 5px;
+    cursor: pointer;
+    z-index: -2;
+}
+.select select {
+    cursor: pointer;
+    padding: 4px;
+    width: 100%;
+    border: none;
+    background: transparent;
+    background-image: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+.select select:focus {
+    outline: none;
+}

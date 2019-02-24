@@ -149,7 +149,7 @@
     100% { border:1px dashed  #749a02; shadow: 0 0 9px #333; }
 }
 .J_ButtonWaitWrap {margin-bottom: 35px;overflow: visible !important;}
-.J_ButtonWaitWrap .qg-l-box{float: left;display: inline-block;position: relative;}
+.J_ButtonWaitWrap .qg-l-box{float: left;display: inline-block;position: relative;z-index:999999;}
 .J_ButtonWaitWrap #qg_down_time,.qg-kq-txt{color: #FF0036;
     font-weight: bolder;
     font-family: Arial;}
@@ -176,3 +176,5 @@
 #qg_form .qg-form-shuoming{display: block;margin-top:30px;  }
 #qg_form .qg-form-shuoming li{line-height: 25px;color: #666666;}
 .qg-gzh{float: right;width: 230px;height: 230px;    margin-right: 39px; text-align: center;color: #280;}
+
+#qg_by_auto_time{color: #280;font-weight: bold;cursor: pointer;text-decoration:none;margin-left: 10px;     padding-right: 20px;}

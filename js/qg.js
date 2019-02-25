@@ -18,7 +18,7 @@ $(function () {
         if(r && r.info){
             qgInfo = JSON.parse(r.info);
             console.log("输出调试1");
-            let jhsNowTimeInfoUrl = '//dskip.ju.taobao.com/detail/json/item_dynamic.htm?item_id='+qgId;
+            let jhsNowTimeInfoUrl = '//dskip.ju.taobao.com/detail/json/item_dynamic.htm?item_id='+r.jhs_num_iid;
             var sTime = 0;
             $.ajax({
                 url:jhsNowTimeInfoUrl,
@@ -33,8 +33,8 @@ $(function () {
                         let eTime = new Date().getTime();
                         let tbTime = d.data.time*1;
                         systemTime = tbTime + 2;
-
-                        let timeArr = [50,60,70,65,45];
+                        let isCar = qgUrl.indexOf('decision=cart') != -1;
+                        let timeArr = isCar ? [3000,6000,9000,10000,15000] : [100,110,175];
                         let index = Math.floor(Math.random()*timeArr.length);
 
                         var timestampToTime = function(timestamp) {
@@ -53,7 +53,7 @@ $(function () {
                         setTimeout(function () {
                             sTime = new Date().getTime();
                             console.log("触发时间是",timestampToTime(sTime));
-                            if (qgUrl.indexOf('decision=cart') != -1) {
+                            if (isCar) {
                                 console.log("点击decision");
                                 //淘宝的加入购物车
                                 if (qgUrl.indexOf('h5.m.taobao.com') != -1) {

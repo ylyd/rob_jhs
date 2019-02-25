@@ -25,7 +25,7 @@ $(function () {
 
     let jhsItemInfoUrl = '//h5api.m.taobao.com/h5/mtop.taobao.detail.getdetail/6.0/?jsv=2.4.8&appKey=12574478&t='+(new Date().getTime())+'&sign=c4c5abe87a1c0743b85c0bba3f44b632&api=mtop.taobao.detail.getdetail&v=6.0&callback=mtopjsonp4&ttid=2017%40taobao_h5_6.6.0&AntiCreep=true&data=%7B%22itemNumId%22%3A%22'+id+'%22%7D';
     let isTaoBaoPage = qgUrl.indexOf('://item.taobao.com') != -1,skuBase = {},skuBaseBySkuId = {};
-    var qgDomParent = null,qgDomParentId = isTaoBaoPage ? "#J_juValid" : "#J_ButtonWaitWrap";
+    var qgDomParent = null,qgDomParentId = isTaoBaoPage ? "J_juValid" : "J_ButtonWaitWrap";
     $.ajax({
         url:jhsItemInfoUrl,
         method:'GET',
@@ -94,13 +94,18 @@ $(function () {
                             setTimeout(function () {
                                 let tbAction = $(".tb-action");
                                 tbAction.before('<div id="'+qgDomParentId+'" class="J_ButtonWaitWrap"></div>');
+                                info = {
+                                    endTime:0,
+                                    startTime:0,
+                                    systemTime:info.systemTime*1+1000
+                                };
+                                console.log("qgInfo",qgInfo);
                                 if (qgInfo) {
-                                    info = {
-                                        endTime:0,
-                                        startTime:qgInfo.start_time,
-                                        systemTime:0
-                                    };
+                                    console.log("不是聚划算但是有抢购记录");
+                                    info['startTime'] = qgInfo.start_time;
+                                    console.log('赋值');
                                 }
+                                console.log('调用countDown.go(info)');
                                 countDown.go(info);
                             },1000);
 
@@ -128,11 +133,12 @@ $(function () {
         kqBtn:null,
         init:function(){
             //获取 插件插入内容的父dom
-            qgDomParent = $(qgDomParentId);
-            if(!qgDomParent.get(0)) {
+            qgDomParent = $('#'+qgDomParentId);
+            console.log(qgDomParentId,qgDomParent.attr('class'))
+            if(!qgDomParent.get(0) && qgDomParent.data('ok')) {
                 return;
             }
-            console.log("初始化html");
+            console.log("初始化html");console.log("初始化html");
             qgDomParent.html('<div class="qg-l-box"><span class="qg-kq-txt"><i class="fa fa-clock-o"></i> 开抢：</span><span id="qg_down_time"></span>' +
                 '<span id="qg_by_auto_time" title="您可以自定义抢购的时间进行抢购">自定义时间</span>'+
                 '<a id="qg_setting" title="使用前须知"><i class="fa fa-cogs"></i> 设置 & 帮助</a>' +
@@ -330,47 +336,48 @@ $(function () {
             console.log("开始倒计时 - go",info);
             this.init();
             this.info = info;
-
             this.timeDown();
             this.proof();
         },
         // 时间倒计时
         timeDown : function () {
-            if(!qgDomParent.find("#qg_down_time").get(0)) {
-                countDown.init();
-            }
+
             if (countDown.info.startTime) {
                 let cha = countDown.info.startTime - countDown.info.systemTime,
                     leftTime = parseInt(cha / 1000);//获得时间差
+                if(!qgDomParent.find("#qg_down_time").get(0)) {
+                    countDown.init();
+                } else {
 
+                    //小时、分、秒需要取模运算
+                    let d = parseInt(leftTime/86400),
+                        h = parseInt(leftTime/3600%24),
+                        m = parseInt(leftTime/60%60),
+                        s = parseInt(leftTime%60),
+                        ms = parseInt((cha / 100)%10),
+                        txt = "";
+                    if (d) {
+                        txt += d+"天";
+                    }
+                    if (h) {
+                        txt += h+"小时";
+                    }
+                    if (m) {
+                        txt += m+"分";
+                    }
+                    // txt += s + "秒" + ms;
+                    txt += s + "秒";
+                    countDown.downTimeDom.text(txt);
 
-                //小时、分、秒需要取模运算
-                let d = parseInt(leftTime/86400),
-                    h = parseInt(leftTime/3600%24),
-                    m = parseInt(leftTime/60%60),
-                    s = parseInt(leftTime%60),
-                    ms = parseInt((cha / 100)%10),
-                    txt = "";
-                if (d) {
-                    txt += d+"天";
-                }
-                if (h) {
-                    txt += h+"小时";
-                }
-                if (m) {
-                    txt += m+"分";
-                }
-                // txt += s + "秒" + ms;
-                txt += s + "秒";
-                countDown.downTimeDom.text(txt);
-
-                if(cha <= 1000){
-                    //todo 开始抢购 开抢页面由bg.js统一打开处理
-                    if (qgInfo) {
-                        //location.href = qgInfo.url.str_replace('detail.','detail.m.');
-                        return;
+                    if(cha <= 1000){
+                        //todo 开始抢购 开抢页面由bg.js统一打开处理
+                        if (qgInfo) {
+                            //location.href = qgInfo.url.str_replace('detail.','detail.m.');
+                            return;
+                        }
                     }
                 }
+
             }
             countDown.info.systemTime = countDown.info.systemTime*1 + 1000;
             setTimeout(countDown.timeDown,1000);

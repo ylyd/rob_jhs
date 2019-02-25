@@ -38,6 +38,14 @@ layui.use(['layer', 'form','element','laypage'], function(){
         methods: {
             maiDianSelect:function(){
                 console.log(this.maiDianSelectValue);
+                let k = liSelectIndexLocal;
+                this.initTabLi(k);
+                this.tab.li[k].params['param']['seller_point'] = this.maiDianSelectValue;
+                this.getData(k);
+            },
+            initTabLi:function(k){
+                this.tab.li[k].firstDataFlag = 0;
+                this.tab.li[k].params['param']['page'] = 1;
             },
             timestampToTime:function(timestamp) {
                 var date = new Date(timestamp*1);//时间戳为10位需*1000，时间戳为13位的话不需乘1000
@@ -50,7 +58,7 @@ layui.use(['layer', 'form','element','laypage'], function(){
                 return Y+M+D+h+m+s;
             },
             tabSelect: function(k) {
-                localStorage['liSelectIndex'] = this.tab.liSelectIndex = k;
+                liSelectIndexLocal = localStorage['liSelectIndex'] = k;
                 if (this.tab.li[k].firstDataFlag) {
                     return;
                 }

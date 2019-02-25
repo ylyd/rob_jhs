@@ -139,7 +139,8 @@ $(function () {
                 return;
             }
             console.log("初始化html");console.log("初始化html");
-            qgDomParent.html('<div class="qg-l-box"><span class="qg-kq-txt"><i class="fa fa-clock-o"></i> 开抢：</span><span id="qg_down_time"></span>' +
+            qgDomParent.html('<div class="qg-l-box"><span class="qg-kq-txt"><i class="fa fa-clock-o"></i> 开抢：</span>' +
+                '<span id="qg_down_time" ></span>' +
                 '<span id="qg_by_auto_time" title="您可以自定义抢购的时间进行抢购">自定义时间</span>'+
                 '<a id="qg_setting" title="使用前须知"><i class="fa fa-cogs"></i> 设置 & 帮助</a>' +
                 '<form method="post" id="qg_form"><div class="qg-gzh"><img src="//qr.api.cli.im/qr?data=http%253A%252F%252Fxiaoaidema.com&level=H&transparent=false&bgcolor=%23ffffff&forecolor=%23000000&blockpixel=12&marginblock=1&logourl=&size=260&kid=cliim&key=a8b261387b9f090b0f6c0a1bc3f48ae6">' +
@@ -334,14 +335,19 @@ $(function () {
         },
         go : function (info) {
             console.log("开始倒计时 - go",info);
+            if (!info.systemTime || info.systemTime == NaN) {
+
+                info.systemTime = new Date().getTime();
+                console.log("重置系统时间 - go",info.systemTime);
+            }
             this.init();
             this.info = info;
+            console.log("重置系统时间this.info.systemTime",this.info.systemTime);
             this.timeDown();
             this.proof();
         },
         // 时间倒计时
         timeDown : function () {
-
             if (countDown.info.startTime) {
                 let cha = countDown.info.startTime - countDown.info.systemTime,
                     leftTime = parseInt(cha / 1000);//获得时间差
@@ -377,7 +383,6 @@ $(function () {
                         }
                     }
                 }
-
             }
             countDown.info.systemTime = countDown.info.systemTime*1 + 1000;
             setTimeout(countDown.timeDown,1000);
@@ -387,8 +392,8 @@ $(function () {
             let jhsNowTimeInfoUrl = '//dskip.ju.taobao.com/detail/json/item_dynamic.htm?item_id='+id;
             var sTime = new Date().getTime();
             $.getJSON(jhsNowTimeInfoUrl, function (d) {
-                console.log('jhs',d);
-                if (d && d.data) {
+                console.log('jhs',d,d.success != 'false');
+                if (d && d.data && d.success != 'false') {
                     let eTime = new Date().getTime();
                     // countDown.lazyTimeArr.push(eTime-sTime);
                     countDown.info.systemTime = d.data.time*1 + (eTime-sTime);
@@ -422,9 +427,10 @@ $(function () {
             }
             qgInfo.count = $((isTaoBaoPage ? "#J_IptAmount" : "#J_Amount")+" .mui-amount-input").val();
             if (countDown.info.systemTime - 60000 > countDown.info.startTime){
-                layer.msg('加入失败。开抢时间已经过去,请从新设定！');
+                layer.msg('加入失败。开抢时间已经过去,请从新设定开抢时间！');
                 return;
             }
+            console.log(countDown.info.systemTime - 60000, countDown.info.startTime,countDown.info.systemTime - 60000 > countDown.info.startTime);
             qgInfo['start_time'] = countDown.info.startTime;
             if(addQgList.propSelectFlag) {
                 return;

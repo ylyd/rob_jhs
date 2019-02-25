@@ -280,8 +280,11 @@ var Util = {
         //删除变量队列
         if (qgInfo) {
             qgInfo = JSON.parse(qgInfo);
-            if (Util.qgList[qgInfo.startTime] && Util.qgList[qgInfo.startTime][id]) {
-                delete Util.qgList[qgInfo.startTime][id];
+            if (Util.qgList[qgInfo.start_time] && Util.qgList[qgInfo.start_time][id]) {
+                delete Util.qgList[qgInfo.start_time][id];
+                if (Object.keys(Util.qgList[qgInfo.start_time]).length == 0) {
+                    delete Util.qgList[qgInfo.start_time];
+                }
                 Util.getTbTime();
             }
         }

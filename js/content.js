@@ -55,6 +55,14 @@ $(function () {
                         images:item.images.slice(0,2),
                         price:0
                     };
+                    if (!d.data.apiStack[0].value) {
+                        layer.confirm('页面似乎遇到了一点错误，是否从新加载？', {
+                            btn: ['嗯！确定','不了'] //按钮
+                        }, function(){
+                            location.reload();
+                        });
+                        return;
+                    }
                     var info = JSON.parse(d.data.apiStack[0].value);
                     console.log('info', info);
                     if (!userInfo) {
@@ -236,7 +244,7 @@ $(function () {
                 offset:[0,2],   //弹框手动偏移量;
                 format:"yyyy-mm-dd hh:ii",   //时间格式 默认 yyyy-mm-dd hh:ii;
                 skin:3,   //皮肤颜色，默认随机，可选值：0-8,或者直接标注颜色值;
-                step:10,   //选择时间分钟的精确度;
+                step:5,   //选择时间分钟的精确度;
                 callback:function(v,e){
                     console.log(v,e);
                     if (countDown.info.systemTime > v * 1000){

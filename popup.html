@@ -73,7 +73,9 @@
                              :key="'https:'+tab.li[1].data.desc[v.num_iid].images[1]" width="60">
                     </a>
                     </td>
-                    <td class="title"><div>{{tab.li[1].data.desc[v.num_iid].title}}</div></td>
+                    <td class="title"><div>
+                        <i :title="v.status ==1 ? '抢购成功' : '抢购失败'" :class="['layui-icon',v.status ==1 ? 'layui-icon-face-smile-fine qg-success':'layui-icon-face-cry qg-finl']"></i>
+                         {{tab.li[1].data.desc[v.num_iid].title}}</div></td>
                     <td>{{timestampToTime(v.start_time)}}</td>
                     <td>
                         <strong style="color: #FF5722;">0</strong>

@@ -28,13 +28,13 @@ var load = function(request) {
                     return Y+M+D+h+m+s;
                 };
                 // qgInfo.start_time = qgInfo.start_time*1 + 114*60*1000;
-                let timeout = Math.max(request.start_time - systemTime - 2500,1);
-                console.log("用时",eTime-sTime,"本地时间 -淘宝时间", timestampToTime(eTime),'-',
-                    timestampToTime(tbTime),eTime - tbTime,"timeout",timeout,"抢购时间是",timestampToTime(request.start_time));
-
+                let timeout = Math.max(request.start_time - systemTime - 2000,1);
                 setTimeout(function () {
+                    chrome.extension.sendRequest({type: "log", data:["刷新页面",timestampToTime(new Date().getTime())]});
                     location.reload();
                 },timeout);
+                chrome.extension.sendRequest({type: "log", data:["用时",eTime-sTime,"本地时间 -淘宝时间", timestampToTime(eTime),'-',
+                        timestampToTime(tbTime),eTime - tbTime,"timeout",timeout,"抢购时间是",timestampToTime(request.start_time*1)]});
 
 
             }
@@ -55,7 +55,7 @@ var load = function(request) {
 chrome.extension.onRequest.addListener(
     (request, sender, sendResponse) => {
         //sendResponse({counter: request.counter + 1 });
-        console.log(request);
+        chrome.extension.sendRequest({type: "log", data:["收到事件 开始调用",request]});
         load(request);
     }
 );
@@ -65,9 +65,20 @@ $(function () {
         for (let i in num_iidArr) {
             let d = $(".allItemv2 .item-img a[href*='id="+num_iidArr[i]+"']").closest(".item-detail");
             console.log(d.attr("data-reactid"));
-                d.prev('.item-cb').find("label").click().find("input").prop("checked",true);
+
+            d.prev('.item-cb').find("label").click();
+            d.find("input").prop("checked",true);
         }
         sessionStorage.removeItem('num_iids');
+
+        let checked = $('.item-cb input:checked');
+        let da = new Date();
+        chrome.extension.sendRequest({type: "log", data:["开抢点击",da.getMinutes()+":"+da.getSeconds(),"选中了",checked.length,"个"]});
+        if (checked.length != num_iidArr.length) {
+            location.reload();
+            return;
+        }
+
         $(".footer .btn").click();
     }
 });

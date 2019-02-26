@@ -99,6 +99,10 @@ var Util = {
         let lazyTime = Util.checkQgLazyTime;
         for(let stime in Util.qgList) {
             let cha = stime*1 - Util.systemTime;
+            if (cha <= 0) {
+                console.log("cha小于0 无须在检测次列表",cha);
+                continue;
+            }
             let nowStimeList = Util.qgList[stime];
             let keyArr = Object.keys(nowStimeList);
             //准备打开页面抢购 进入抢购页面 尽量不要太多
@@ -212,8 +216,13 @@ var Util = {
             success:function (d,status,xhr) {
                 if (d && d.data) {
                     //登录淘宝 跟时间校验 有要抢的宝贝 且 当前时间<= 抢购时间 且 当前时间 >= 抢购时间-两（防止漏掉）个轮训时间
-                    let minStime = Util.arrayMin(qgKeyArr);
-
+                    let minStime = Util.arrayMin(qgKeyArr,d.data.time);
+                    if (!minStime) {
+                        //代表没有可以抢购的东西[超时 列表空都是这种情况]
+                        console.log("没有可以抢购的",minStime);
+                        Util.startCheckQgList = 0;
+                        return;
+                    }
                     if (d.data.isLogin == 0 && minStime &&
                         d.data.time <= minStime && d.data.time >= minStime - 2 * Util.qgPageOpenOnceTime) {
                         console.log("这个时间需要淘宝登录");
@@ -255,14 +264,14 @@ var Util = {
             }
         });
     },
-    arrayMin:function(arrs){
+    arrayMin:function(arrs, now){
         let min = arrs[0];
         for(let i = 1; i < arrs.length; i++) {
-            if(arrs[i] < min) {
+            if(arrs[i] > now && arrs[i] < min) {
                 min = arrs[i];
             }
         }
-        return min;
+        return min > now ? min : 0;
     },
     loginTb:function(){
         console.log("准备登陆");
@@ -331,6 +340,9 @@ var Util = {
             $.get(Host+'/coupon/qgSuccess',{num_iid:num_iidArr.join(','),user_token:USER_TOKEN,user_fd:WSFD},function (d) {
                 //关闭tab
                 console.log("批量提交",d);
+                if (d.status ==1){
+                    Util.notice(d.data);
+                }
                 setTimeout(function () {
                     chrome.tabs.remove(tabId);
                 },10000);
@@ -344,6 +356,9 @@ var Util = {
                     $.get(Host+'/coupon/qgSuccess',{num_iid:num_iid,user_token:USER_TOKEN,user_fd:WSFD},function (d) {
                         //关闭tab
                         console.log("准备关闭tab",tabId);
+                        if (d.status ==1){
+                            Util.notice(d.data);
+                        }
                         setTimeout(function () {
                             chrome.tabs.remove(tabId);
                         },10000);
@@ -431,6 +446,7 @@ var Util = {
     },
     initQgList:function(list) {
         for(let i in list) {
+            list[i]['start_time'] *= 1000;
             Util.pushQgInfo(list[i],true);
         }
     },
@@ -457,7 +473,6 @@ var Util = {
                 if (d.status == 1) {
                     Util.initQgList(d.data.data);
                     Util.setBadge(d.data.count);
-                    Util.checkQg();
                    Util.getTbTime();
                 }
 
@@ -597,17 +612,20 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
         case 'qgBegin':
             Util.qgList[Util.currentQgKey][r.id]['qgBegin'] = true;
             Util.currentQgSucNum++;
-            if (Util.openCartabTd && Util.currentQgSucNum >= Object.keys(Util.qgList[Util.currentQgKey]).length) {
+            let keyarr = Object.keys(Util.qgList[Util.currentQgKey]);
+            if (Util.openCartabTd && Util.currentQgSucNum >= keyarr.length) {
                 chrome.tabs.sendRequest(Util.openCartabTd,
-                    {num_iids:Object.keys(Util.qgList[Util.currentQgKey]),jhs_num_iid: Util.jhsNumIid,start_time:Util.currentQgKey},
+                    {num_iids:keyarr,jhs_num_iid: Util.jhsNumIid,start_time:Util.currentQgKey},
                     r => {
-                        console.log('刷新购物车开始提交');
+                        console.log('刷新购物车开始提交start_time='+Util.timestampToTime(Util.currentQgKey));
                     });
             }
 
             break;
         case 'mustLogin':
             Util.loginTb();
+            break;
+        default:
             break;
     }
 });

@@ -34,7 +34,7 @@ $(function () {
                         let tbTime = d.data.time*1;
                         systemTime = tbTime + 2;
                         let isCar = qgUrl.indexOf('decision=cart') != -1;
-                        let timeArr = isCar ? [3000,6000,9000,10000,15000] : [100,110,175];
+                        let timeArr = isCar ? [3000,6000,9000,10000,15000] : [1000,900,1200];
                         let index = Math.floor(Math.random()*timeArr.length);
 
                         var timestampToTime = function(timestamp) {

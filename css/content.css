@@ -163,7 +163,7 @@
 .tb-clear{clear: both}
 .piaoyi{position: fixed;z-index: 999999999;right: 1000px;top:300px;width: 418px;
     height: 418px;}
-.J_ButtonWaitWrap a#qg_setting,.J_ButtonWaitWrap a#qg_setting:hover{cursor: pointer; text-decoration:none; color: #280;font-weight: bolder;display: block;}
+.J_ButtonWaitWrap a#qg_setting,.J_ButtonWaitWrap a#qg_setting:hover{width:90px;cursor: pointer; text-decoration:none; color: #280;font-weight: bolder;display: block;}
 #qg_form{position: absolute;top: 100%;display: none;left: 0px;background: #fff;
     border: 1px solid #e0e0e0 \9;
     border-top: 0 \9;padding: 25px 10px 35px 20px;
@@ -178,3 +178,36 @@
 .qg-gzh{float: right;width: 230px;height: 230px;    margin-right: 39px; text-align: center;color: #280;}
 
 #qg_by_auto_time{color: #280;font-weight: bold;cursor: pointer;text-decoration:none;margin-left: 10px;     padding-right: 20px;}
+
+#qg_tool{position: absolute;display: inline-block;bottom: 0;right: 0;}
+.qg-quan{    background: #fffaf9;
+    border: 1px solid #ff8f82;
+    border-radius: 3px;
+    font-size: 12px;
+    display: inline-block;
+    color: #ff550c!important;
+    position: relative;
+    padding-left: 4px;
+    overflow: visible;}
+.qg-quan:before, .qg-quan:after {
+    content: '';
+    display: inline-block;
+    border: 1px solid #ff8f82;
+    position: absolute;
+    left: 3px;
+    z-index: 10;
+    width: 3px;
+    height: 1.5px;
+    background: #fff;
+}
+.qg-quan:before {
+    border-radius: 0 0 100% 100%;
+    border-top-color: #fff;
+    top: -1px;
+}
+
+.qg-quan:after {
+    border-radius: 100% 100% 0 0;
+    border-bottom-color: #fff;
+    bottom: -1px;
+}

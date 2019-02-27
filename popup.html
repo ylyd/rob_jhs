@@ -114,7 +114,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr v-for="(v,k) in tab.li[2].data.data" :title="v.jhs.usp_desc_list.join('  ')">
+                <tr v-for="(v,k) in tab.li[2].data.data" :title="v.jhs.price_usp_list.join('  ')">
                     <td><a :href="'https://detail.tmall.com/item.htm?id='+v.num_iid" target="_blank">
                         <img v-lazy="'https:'+v.images[0]"
                              :key="'https:'+v.images[0]" width="60">
@@ -123,10 +123,10 @@
                     <td class="title"><div>{{v.title}}</div></td>
                     <td><strong class="price">￥{{v.price}}</strong>
                         <span class="org-price">{{v.jhs.orig_price}}</span><br>
-                    <span class="hot-qiang">抢：{{timestampToTime(v.start_time*1000)}}</span>
+                    <span class="hot-qiang">抢：{{timestampToTime(v.start_time)}}</span>
                     </td>
                     <td>
-                        <span class="layui-badge" v-for="(v1,k1) in v.jhs.price_usp_list">
+                        <span class="layui-badge" v-for="(v1,k1) in v.jhs.price_usp_list" v-if="k1<3">
                             {{v1}}
                         </span>
                     </td>

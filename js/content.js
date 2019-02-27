@@ -150,7 +150,8 @@ $(function () {
             qgDomParent.html('<div class="qg-l-box"><span class="qg-kq-txt"><i class="fa fa-clock-o"></i> 开抢：</span>' +
                 '<span id="qg_down_time" ></span>' +
                 '<span id="qg_by_auto_time" title="您可以自定义抢购的时间进行抢购">自定义时间</span>'+
-                '<a id="qg_setting" title="使用前须知"><i class="fa fa-cogs"></i> 设置 & 帮助</a>' +
+                '<a id="qg_setting" title="使用前须知"><i class="fa fa-cogs"></i> 设置 & 帮助</a> ' +
+                '<div id="qg_tool"></div>' +
                 '<form method="post" id="qg_form"><div class="qg-gzh"><img src="//qr.api.cli.im/qr?data=http%253A%252F%252Fxiaoaidema.com&level=H&transparent=false&bgcolor=%23ffffff&forecolor=%23000000&blockpixel=12&marginblock=1&logourl=&size=260&kid=cliim&key=a8b261387b9f090b0f6c0a1bc3f48ae6">' +
                 '<br> <b>聚抢先公众号</b></div> <input type="hidden" name="tb_id"><input type="hidden" name="area_id">' +
                 '<input type="hidden" name="address_id">' +
@@ -184,6 +185,7 @@ $(function () {
             if (qgDomParent.data('ok')) {
                 return;
             }
+
             console.log("初始化事件");
             qgDomParent.on('click',"#qg_setting",function () {
                     let o = $(this),form = $("#qg_form");
@@ -229,6 +231,10 @@ $(function () {
                         chrome.storage.sync.set({tb_info:tmpdata}, function() {
                             layer.msg('保存成功，感谢您对插件的信任与支持！');
                             form.hide();
+                            if (tmpdata['tb_id']) {
+                                chrome.extension.sendRequest({type: "upTbId", data:tmpdata['tb_id']});
+                            }
+
                         });
                     }
 
@@ -307,9 +313,7 @@ $(function () {
                         layer.msg('完善登录、支付信息在加入购买');
                         return;
                     }
-
                     //可以点击
-
                     let txt = countDown.kqBtn.text();
                     if (txt != "取消定时抢购") {
                         //todo 跟bg.js通信 把商品信息传入 成功后改变文字
@@ -339,6 +343,14 @@ $(function () {
 
             });
             qgDomParent.addClass('J_ButtonWaitWrap').data('ok',1);
+            //判断是否要登录了
+            if (!isTaoBaoPage && $("#login-info .sn-login").text() == '请登录') {
+                chrome.storage.sync.get('tb_info', function(r) {
+                    if (r && r['tb_info'] && r['tb_info']['tb_username'] && r['tb_info']['tb_password']) {
+                        chrome.extension.sendRequest({type: "mustLogin"});
+                    }
+                });
+            }
             console.log("初始化成功！");
         },
         go : function (info) {

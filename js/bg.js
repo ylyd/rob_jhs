@@ -1,7 +1,14 @@
 //webSocket
-var WS = null,Host = 'http://es.com',WSFD = 0,
+var WS = null,Host = 'http://es.com',WSFD = 0,TB_ID=0,
     //上次连接的旧的websocket fd
     WS_OLD_FD = localStorage['WS_OLD_FD'] ? localStorage['WS_OLD_FD'] : 0,USER_TOKEN = null;
+chrome.storage.sync.get('tb_info', function(r) {
+    if (r && r['tb_info']) {
+        if (r['tb_info']['tb_id']) {
+            TB_ID = r['tb_info']['tb_id'];
+        }
+    }
+});
 chrome.storage.sync.get('user_token', function(r) {
     if (r && r['user_token']) {
         //把用户token 付给变量
@@ -9,51 +16,56 @@ chrome.storage.sync.get('user_token', function(r) {
             USER_TOKEN = r['user_token'];
         }
     }
-});
-try {
-     WS = new ReconnectingWebSocket('ws://es.com:9501', null, {debug: true, reconnectInterval: 300000});
 
-    WS.onopen = (evt) => {
-        console.log('websocket连接开启', evt);
-        //todo 发送用户信息
-       Util.wsSend({'class':'User',action:'getFd',content:{old_fd:WS_OLD_FD,user_token:USER_TOKEN}});
-    };
+    try {
+        WS = new ReconnectingWebSocket('ws://es.com:9501', null, {debug: true, reconnectInterval: 300000});
 
-    WS.onclose = (evt) => {
-        //todo 告诉服务器关闭 不然造成fd的浪费
-        console.log('websocket连接关闭', evt);
-    };
+        WS.onopen = (evt) => {
+            console.log('websocket连接开启', evt);
+            //todo 发送用户信息
+            Util.wsSend({'class':'User',action:'getFd',content:{old_fd:WS_OLD_FD,user_token:USER_TOKEN}});
+        };
 
-    WS.onmessage = (evt) => {
-        console.log('websocket收到数据', evt);
-        let data = JSON.parse(evt.data);
-        switch (data.type) {
-            //用户websocket连接成功 open 请求回来的首次登陆消息
-            case 'set_fd':
-                WSFD = localStorage['WS_OLD_FD'] = data.fd;
-                //获取带抢购列表
-                Util.jhsNumIid = data.init['jhs_num_iid'];
-                Util.getMyQgItem();
-                Util.setUserToken(data.user_token);
+        WS.onclose = (evt) => {
+            //todo 告诉服务器关闭 不然造成fd的浪费
+            console.log('websocket连接关闭', evt);
+        };
 
-                break;
-            case 'notice':
-                Util.notice(data.data);
-                break;
+        WS.onmessage = (evt) => {
+            console.log('websocket收到数据', evt);
+            let data = JSON.parse(evt.data);
+            switch (data.type) {
+                //用户websocket连接成功 open 请求回来的首次登陆消息
+                case 'set_fd':
+                    WSFD = localStorage['WS_OLD_FD'] = data.fd;
+                    //获取带抢购列表
+                    Util.jhsNumIid = data.init['jhs_num_iid'];
+                    Util.getMyQgItem();
+                    Util.setUserToken(data.user_token);
+                    if (!data.init['has_tb_id']) {
+                        Util.setTbId(TB_ID);
+                    }
+                    break;
+                case 'notice':
+                    Util.notice(data.data);
+                    break;
+            }
+        };
+
+        WS.onerror = (evt, e) => {
+            //todo 通过ajax 告诉 服务器杀掉fd
+            console.log('websocket发生错误', evt, e);
+        };
+        //监听窗口关闭事件，当窗口关闭时，主动去关闭websocket连接，防止连接还没断开就关闭窗口，server端会抛异常。
+        window.onbeforeunload = function () {
+            if (WS_OLD_FD) WS.close();
         }
-    };
-
-    WS.onerror = (evt, e) => {
-        //todo 通过ajax 告诉 服务器杀掉fd
-        console.log('websocket发生错误', evt, e);
-    };
-    //监听窗口关闭事件，当窗口关闭时，主动去关闭websocket连接，防止连接还没断开就关闭窗口，server端会抛异常。
-    window.onbeforeunload = function () {
-        if (WS_OLD_FD) WS.close();
+    } catch (e) {
+        console.log('websocket连接失败', e);
     }
-} catch (e) {
-    console.log('websocket连接失败', e);
-}
+});
+
+
 
 /**
  * 工具类
@@ -337,7 +349,7 @@ var Util = {
                 }
             }
 
-            $.get(Host+'/coupon/qgSuccess',{num_iid:num_iidArr.join(','),user_token:USER_TOKEN,user_fd:WSFD},function (d) {
+            $.get(Host+'/coupon/qgSuccess',{num_iid:num_iidArr.join(','),tb_id:TB_ID,user_token:USER_TOKEN,user_fd:WSFD},function (d) {
                 //关闭tab
                 console.log("批量提交",d);
                 if (d.status ==1){
@@ -353,7 +365,7 @@ var Util = {
                     //付款成功！！！
                     console.log("num_iid",num_iid,'tabid',tabId,"付款成功","删除队列");
                     delete Util.delQgList(num_iid);
-                    $.get(Host+'/coupon/qgSuccess',{num_iid:num_iid,user_token:USER_TOKEN,user_fd:WSFD},function (d) {
+                    $.get(Host+'/coupon/qgSuccess',{num_iid:num_iid,tb_id:TB_ID,user_token:USER_TOKEN,user_fd:WSFD},function (d) {
                         //关闭tab
                         console.log("准备关闭tab",tabId);
                         if (d.status ==1){
@@ -409,17 +421,6 @@ var Util = {
                     console.log("请求超时，请稍后再试！",'','error');
                 }
             }
-        });
-    },
-    //更新优惠券
-    upCoupon:function (data) {
-        data['user_token'] = USER_TOKEN;
-        $.ajax({
-            url:Host+'/coupon/update',
-            method:'POST',
-            data:data,
-            dataType:'json',
-            timeout:1000
         });
     },
     noticeUrl:null,
@@ -491,6 +492,94 @@ var Util = {
     setBadge:function (txt) {
         chrome.browserAction.setBadgeText({text: txt+''});
         chrome.browserAction.setBadgeBackgroundColor({color: [255, 0, 0, 255]});
+    },
+    setTbId:function (tbId) {
+        $.get(Host+'/user/upUserTbId',{tb_id:tbId,user_token:USER_TOKEN},function (d) {
+            TB_ID = tbId;
+            console.log(d);
+        });
+    },
+    getRecommendQuan:function (url) {
+        $.ajax({
+            url:url,
+            method:'GET',
+            dataType:'text',
+            timeout:1000,
+            success:function (d) {
+                if (d.indexOf('mtopjsonp3(')!=-1){
+                    d = JSON.parse(d.slice(d.indexOf('(') + 1,-1));
+                    if (d.ret[0] == 'SUCCESS::调用成功' && d.data && d.data.recommend && d.data.recommend.resultList) {
+                        d = d.data.recommend.resultList;
+                        let quanArr = [];
+                        for (let i in d) {
+                            let quan = {
+                                num_iid:d[i].itemId,
+                                activity_id:d[i].couponActivityId,
+                                amount:d[i].couponAmount,
+                                start_time:d[i].couponEffectiveStartTime/1000,
+                                end_time:d[i].couponEffectiveEndTime/1000,
+                                star_fee:d[i].couponStartFee
+                            };
+                            quanArr.push(quan);
+                        }
+                        Util.addQuan(quanArr);
+                    }
+                }
+            },
+            error:function (xhr,status,error) {
+                console.log("错误提示： " + xhr.status + " " + xhr.statusText,error);
+            }
+        });
+    },
+    addQuan:function (quan,one) {
+        $.ajax({
+            url:Host+'/quan/add',
+            method:'POST',
+            data:{data:quan,one:one?one:''},
+            dataType:'json',
+            timeout:2500,
+            success:function (d) {
+                if (d.status == 1) {
+                    console.log("添加券成功");
+                }
+            },
+            error:function (xhr,status,error) {
+                console.log("错误提示： " + xhr.status + " " + xhr.statusText);
+            },
+            complete : function(XMLHttpRequest,status){ //请求完成后最终执行参数
+                if(status == 'timeout'){
+                    console.log("请求超时，请稍后再试！",'','error');
+                }
+            }
+        });
+    },
+    getErQuan:function (url) {
+        $.ajax({
+            url:url,
+            method:'GET',
+            dataType:'text',
+            timeout:1000,
+            success:function (d) {
+                if (d.indexOf('mtopjsonp2(')!=-1){
+                    d = JSON.parse(d.slice(d.indexOf('(') + 1,-1));
+                    if (d.ret[0] == 'SUCCESS::调用成功' && d.data && d.data.success) {
+                        d = d.data.result;
+                        let quan = {
+                            num_iid:d.item.itemId,
+                            url:d.item.shareUrl,
+                            amount:d.amount,
+                            start_time:d.effectiveStartTime,
+                            end_time:d.effectiveEndTime,
+                            star_fee:d.startFee
+                        };
+                        Util.addQuan(quan,true);
+                    }
+                }
+            },
+            error:function (xhr,status,error) {
+                console.log("错误提示： " + xhr.status + " " + xhr.statusText,error);
+            }
+        });
     }
 };
 
@@ -548,6 +637,7 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
            break;
            //获取当前商品是否在抢购列表中
         case 'getLocalQgItemById':
+            //Util.checkQuan();
             sendResponse({info:sessionStorage['qg_'+r.id], systemTime:Util.systemTime, jhs_num_iid:Util.jhsNumIid,pageStime:sessionStorage['tab_stime'+r.id]});
             break;
             //加入抢购队列
@@ -625,6 +715,8 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
         case 'mustLogin':
             Util.loginTb();
             break;
+        case 'upTbId':
+            Util.setTbId(r.data);
         default:
             break;
     }
@@ -632,6 +724,12 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
 // web请求监听，最后一个参数表示阻塞式，需单独声明权限：webRequestBlocking ["<all_urls>"]
 chrome.webRequest.onBeforeRequest.addListener(details => {
     console.log(details);
+    //搜罗优惠券连接
+    if(details.url.indexOf("acs.m.taobao.com/h5/mtop.alimama.union.xt.en.api.entry") != -1) {
+        console.log("二合一券推荐页面",details.tabId);
+        Util.getRecommendQuan(details.url);
+        return;
+    }
     //优惠券页面
     if(details.url.indexOf("mclient.alipay.com/h5/cashierPay.htm") != -1) {
         console.log("支付完成",details.tabId);
@@ -639,28 +737,11 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
         return;
     }
     if (details.url.indexOf('acs.m.taobao.com/h5/mtop.alimama.union.hsf.coupon.get') != -1) {
-        $.ajax({
-            url:details.url,
-            method:'GET',
-            dataType:'text',
-            timeout:1000,
-            success:function (d) {
-                if (d.indexOf('mtopjsonp2(')!=-1){
-                    d = JSON.parse(d.slice(d.indexOf('(') + 1,-1));
-                    if (d.ret[0] == 'SUCCESS::调用成功' && d.data && d.data.success) {
-                        d = d.data.result;
-                        var id = d.item.itemId;
-                        sessionStorage['coupon_'+id] = d.amount;
-                        //上传优惠券 无论失效与否
-                        Util.upCoupon(d);
-                    }
-                }
-            },
-            error:function (xhr,status,error) {
-                console.log("错误提示： " + xhr.status + " " + xhr.statusText,error);
-            }
-        });
-    } else if(details.type == 'main_frame') {
+        Util.getErQuan(details.url);
+        return;
+    }
+
+    if(details.type == 'main_frame') {
         //宝贝页面 先获取商品id
         var id = details.url.match(/[\?&]id=(\d{8,15})/);
         if (id) {
@@ -721,9 +802,16 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
     }
 
 }, {
-    urls: ["*://detail.tmall.com/item.htm*","*://detail.m.tmall.com/item.htm*","*://chaoshi.detail.tmall.com/item.htm*",
-        "*://item.taobao.com/item.htm*","*://h5.m.taobao.com/awp/core/detail*",
-    "*://acs.m.taobao.com/h5/mtop.alimama.union.hsf.coupon.get*","*://mclient.alipay.com/h5/cashierPay.htm*"],
+    urls: [
+        "*://detail.tmall.com/item.htm*",
+        "*://detail.m.tmall.com/item.htm*",
+        "*://chaoshi.detail.tmall.com/item.htm*",
+        "*://item.taobao.com/item.htm*",
+        "*://h5.m.taobao.com/awp/core/detail*",
+        "*://acs.m.taobao.com/h5/mtop.alimama.union.hsf.coupon.get*",
+        "*://mclient.alipay.com/h5/cashierPay.htm*",
+        "*://acs.m.taobao.com/h5/mtop.alimama.union.xt.en.api.entry*"
+    ],
     types:["main_frame","other","script"]
 }, ["blocking"]);
 

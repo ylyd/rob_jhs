@@ -248,7 +248,7 @@ var Util = {
                     let cheDTime = Util.checkQgLazyTime * (Object.keys(Util.qgList[minStime]).length * 1 + 4);
                     cheDTime = Math.max(1800000,cheDTime);//取一个大的
                     if (Util.systemTime < minStime - cheDTime) {
-                        LazyTime = minStime - Util.systemTime;
+                        LazyTime = minStime - Util.systemTime - cheDTime - 5000;
                         Util.startCheckQgList = 0;
                         console.log("在",LazyTime,'后开始在调用淘宝接口对时间',cheDTime);
                     } else {
@@ -300,7 +300,7 @@ var Util = {
                         console.log("tab",tab);
                         setTimeout(function () {
                             chrome.tabs.remove(tab.id);
-                        },5000);
+                        },12000);
                     });
                 } else {
                     console.log("淘宝信息为空");

@@ -173,7 +173,7 @@ $(function () {
                 let JiskuObj = $("#J_isku");
                 if (propPath) {
                     propPath = propPath.split(';');
-                    for(let i in propPath) {
+                    for (let i in propPath) {
                         JiskuObj.find("li[data-value="+propPath[i]+"]").click();
                     }
                 }
@@ -258,7 +258,7 @@ $(function () {
                         return;
                     }
 
-                    qgInfo.start_time = countDown.info.startTime = v * 1000;
+                    countDown.info.startTime = v * 1000;
                     addQgList.add();
                 } //回调函数
             });
@@ -291,11 +291,13 @@ $(function () {
                 }
             });
             //数量更新处理
-            var jAmount = $(isTaoBaoPage ? "#J_IptAmount" : "#J_Amount").on('change input propertychange','.mui-amount-input',function () {
+            var jAmount = $(isTaoBaoPage ? "#J_Stock" : "#J_Amount")
+                .on('change input propertychange','.mui-amount-input,#J_IptAmount',function () {
                 console.log(this.value);
                 changeQgAction(this.value);
-            }).on('click','.mui-amount-btn span,.tb-increase,.tb-reduce',function () {
-                changeQgAction(jAmount.find('.mui-amount-input').val());
+            }).on('click','.mui-amount-btn span,a.tb-iconfont',function () {
+                console.log(jAmount.find('.mui-amount-input,#J_IptAmount').val());
+                changeQgAction(jAmount.find('.mui-amount-input,#J_IptAmount').val());
             });
             //初始化够买数量
             if (qgInfo && qgInfo.count) {
@@ -339,17 +341,103 @@ $(function () {
                         addQgList.cancel();
                     }
                 });
-
-
             });
             qgDomParent.addClass('J_ButtonWaitWrap').data('ok',1);
-            //判断是否要登录了
-            if (!isTaoBaoPage && $("#login-info .sn-login").text() == '请登录') {
-                chrome.storage.sync.get('tb_info', function(r) {
-                    if (r && r['tb_info'] && r['tb_info']['tb_username'] && r['tb_info']['tb_password']) {
-                        chrome.extension.sendRequest({type: "mustLogin"});
+
+            let lingQuan = function (couldP,price) {
+                console.log('开始领券');
+                let storage = new Storage();
+                let activityId = storage.getItem('activityId'+id),startTime = new Date().getTime();
+                if (!activityId) activityId ={};
+                let count = 1, len = couldP.length -1,quanArr = [];
+                couldP.each((i,v)=>{
+                    let o = $(v),aid = o.attr(isTaoBaoPage?'data-activityid':'data-activeid');
+                    console.log(aid);
+                    if(!isTaoBaoPage && o.attr('data-c')*1 <= price) {
+                        let quan = {
+                            activity_id:aid,
+                            amount:o.attr('data-d'),
+                            start_time:o.attr('data-s'),
+                            end_time:o.attr('data-l'),
+                            star_fee:o.attr('data-c')
+                        };
+                        quanArr.push(quan);
+                    }
+                    if (activityId && aid && activityId[aid]) {
+                        console.log("无须再领第",i,"张优惠券领券");
+                    } else {
+                        if (!isTaoBaoPage && o.attr('data-c')*1 > price) {
+                            // 不领券
+                            return;
+                        }
+                        setTimeout(function () {
+                            activityId[aid] = 1;
+                           if (!isTaoBaoPage){
+                               o.mouseenter().find('.j_couldActVal').click();
+                           } else {
+                               o.mouseenter().click();
+                           }
+                            console.log("第",i,"张优惠券领券");
+                            if (len == i) {
+                                storage.setItem({
+                                    name:'activityId'+id,
+                                    value:activityId,
+                                    expires:86400000 * 3
+                                });
+
+                            }
+
+                        }, 2500 * count++);
                     }
                 });
+
+                if (!isTaoBaoPage) showQuanTools(quanArr);
+            };
+
+            let qgTool = $("#qg_tool");
+            let showQuanTools = function (quanArr) {
+                console.log("插入工具条");
+                let sysLqtxt = quanArr.length>0?'为您成功领取【<b>'+quanArr.length+'</b>】张':'';
+                let str = '<span>'+sysLqtxt+' <a class="qg-quan">优惠券</a> <a href="javascript:;" id="qg_quan_more">更多 <i class="fa fa-caret-down"></i></a></span>';
+                qgTool.append(str);
+            };
+            //判断是否要登录了
+            if (!isTaoBaoPage) {
+                if ($("#login-info .sn-login").text() == '请登录') {
+                    chrome.storage.sync.get('tb_info', function(r) {
+                        if (r && r['tb_info'] && r['tb_info']['tb_username'] && r['tb_info']['tb_password']) {
+                            chrome.extension.sendRequest({type: "mustLogin"});
+                        }
+                    });
+                } else {
+                    var asset = null;
+                    var checkAsset = function() {
+                        asset = $(".mui-mbar-tab-asset");
+                        if (asset && asset.get(0)) {
+                            console.log('点击我的资产');
+                            asset.click();
+                            setTimeout(function (){
+                                lingQuan($(".j_mui-mbarp-asset-could-coupon a"),$(".tm-price").last().text()*1);
+                                asset.click();
+                            },1000);
+                        } else {
+                            console.log('继续调用检测我的资产');
+                            setTimeout(checkAsset, 1500);
+                        }
+                    }
+                    checkAsset();
+                }
+            } else {
+                if (!$(".site-nav-user .site-nav-login-info-nick ").text()) {
+                    chrome.storage.sync.get('tb_info', function(r) {
+                        if (r && r['tb_info'] && r['tb_info']['tb_username'] && r['tb_info']['tb_password']) {
+                            chrome.extension.sendRequest({type: "mustLogin"});
+                        }
+                    });
+                } else {
+                    console.log('淘宝领券');
+                    lingQuan($("a.J_coupon"), $("#J_StrPrice .tb-rmb-num").text() * 1);
+                }
             }
             console.log("初始化成功！");
         },
@@ -456,7 +544,7 @@ $(function () {
                 return;
             }
             let index = layer.load(0, {shade: false});
-            itemInfo['price']=$(".tm-price").last().text();
+            itemInfo['price']=isTaoBaoPage? $("#J_StrPrice .tb-rmb-num").text() : $(".tm-price").last().text();
             chrome.extension.sendRequest({type: "addQgList", id:qgId,qgInfo:qgInfo,itemInfo:itemInfo}, function(r){
                 layer.close(index);
                 if(r.status == 1){

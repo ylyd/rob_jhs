@@ -148,7 +148,7 @@
     50% { border:1px dashed #91bd09;shadow: 0 0 18px #91bd09; }
     100% { border:1px dashed  #749a02; shadow: 0 0 9px #333; }
 }
-.J_ButtonWaitWrap {margin-bottom: 35px;overflow: visible !important;}
+.J_ButtonWaitWrap {margin-bottom: 25px;overflow: visible !important;    margin-top: 10px;}
 .J_ButtonWaitWrap .qg-l-box{float: left;display: inline-block;position: relative;z-index:999999;}
 .J_ButtonWaitWrap #qg_down_time,.qg-kq-txt{color: #FF0036;
     font-weight: bolder;
@@ -179,15 +179,15 @@
 
 #qg_by_auto_time{color: #280;font-weight: bold;cursor: pointer;text-decoration:none;margin-left: 10px;     padding-right: 20px;}
 
-#qg_tool{position: absolute;display: inline-block;bottom: 0;right: 0;}
+#qg_tool{position: absolute;display: inline-block;bottom: 0;left: 90px;    width: 300px;}
 .qg-quan{    background: #fffaf9;
     border: 1px solid #ff8f82;
     border-radius: 3px;
-    font-size: 12px;
+    font-size: 12px;padding-right: 5px;
     display: inline-block;
     color: #ff550c!important;
     position: relative;
-    padding-left: 4px;
+    padding-left: 7px;
     overflow: visible;}
 .qg-quan:before, .qg-quan:after {
     content: '';
@@ -211,3 +211,4 @@
     border-bottom-color: #fff;
     bottom: -1px;
 }
+#qg_quan_more,#qg_quan_more:hover{cursor: pointer;    color: #666;}

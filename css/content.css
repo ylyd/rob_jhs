@@ -182,9 +182,9 @@
 #qg_tool{position: absolute;display: inline-block;bottom: 0;left: 90px;    width: 300px;}
 .qg-quan{    background: #fffaf9;
     border: 1px solid #ff8f82;
-    border-radius: 3px;
+    border-radius: 3px;    line-height: 17px;
     font-size: 12px;padding-right: 5px;
-    display: inline-block;
+    display: inline-block;    padding-bottom: 1px;
     color: #ff550c!important;
     position: relative;
     padding-left: 7px;
@@ -212,3 +212,5 @@
     bottom: -1px;
 }
 #qg_quan_more,#qg_quan_more:hover{cursor: pointer;    color: #666;}
+.qg-quan-p{position: relative;
+    top: 2px;}

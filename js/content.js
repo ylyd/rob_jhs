@@ -77,7 +77,8 @@ $(function () {
                         info = {
                             endTime:info.vertical.jhs.endTime,
                             startTime:info.vertical.jhs.startTime,
-                            systemTime:systime *1 + (eTime-sTime)
+                            systemTime:systime *1 + (eTime-sTime),
+                            shopId:d.data.seller.shopId
                         };
                         console.log('jhs2',info);
 
@@ -105,7 +106,8 @@ $(function () {
                                 info = {
                                     endTime:0,
                                     startTime:0,
-                                    systemTime:info.systemTime*1+1000
+                                    systemTime:info.systemTime*1+1000,
+                                    shopId:d.data.seller.shopId
                                 };
                                 console.log("qgInfo",qgInfo);
                                 if (qgInfo) {
@@ -259,7 +261,10 @@ $(function () {
                     }
 
                     countDown.info.startTime = v * 1000;
-                    addQgList.add();
+                    if (qgInfo && qgInfo['url']) {
+                        //相当于此处做修改处理
+                        addQgList.add();
+                    }
                 } //回调函数
             });
             countDown.kqBtn = qgDomParent.find("#kaiqiang_btn");
@@ -349,27 +354,38 @@ $(function () {
                 let storage = new Storage();
                 let activityId = storage.getItem('activityId'+id),startTime = new Date().getTime();
                 if (!activityId) activityId ={};
-                let count = 1, len = couldP.length -1,quanArr = [];
+                let count = 1, len = couldP.length -1,quanArr = [],maxIndex= 0,maxStarFee= 0;
+
+                let activityReg=/[?&](activityId|activity_id)=(\w+)/m;
+                let couponUrl = [];
+                $("a[href*='taoquan.taobao.com/coupon/unify_apply']").each((i,v)=>{
+                    console.log("店铺优惠券；连接");
+                    let aid = v.href.match(activityReg)[2];
+                    if (activityId && aid && activityId[aid]) {
+                        console.log("无须再领第",i,"张店铺优惠券领券");
+                    } else {
+                        activityId[aid] = 1;
+                        couponUrl.push(v.href);
+                    }
+                });
+                if (couponUrl.length>0) {
+                    chrome.extension.sendRequest({type: "lingquan", data:couponUrl});
+                }
                 couldP.each((i,v)=>{
                     let o = $(v),aid = o.attr(isTaoBaoPage?'data-activityid':'data-activeid');
                     console.log(aid);
-                    if(!isTaoBaoPage && o.attr('data-c')*1 <= price) {
-                        let quan = {
-                            activity_id:aid,
-                            amount:o.attr('data-d'),
-                            start_time:o.attr('data-s'),
-                            end_time:o.attr('data-l'),
-                            star_fee:o.attr('data-c')
-                        };
-                        quanArr.push(quan);
+                    if(!isTaoBaoPage) {
+                        let starFee  = o.attr('data-c');
+                        if (starFee > maxStarFee && starFee <= price) {
+                            maxIndex = i;
+                            maxStarFee = starFee;
+                        }
+
                     }
                     if (activityId && aid && activityId[aid]) {
                         console.log("无须再领第",i,"张优惠券领券");
-                    } else {
-                        if (!isTaoBaoPage && o.attr('data-c')*1 > price) {
-                            // 不领券
-                            return;
-                        }
+                    } else if(isTaoBaoPage){
+
                         setTimeout(function () {
                             activityId[aid] = 1;
                            if (!isTaoBaoPage){
@@ -391,14 +407,28 @@ $(function () {
                     }
                 });
 
-                if (!isTaoBaoPage) showQuanTools(quanArr);
+                if (!isTaoBaoPage) {
+                    setTimeout(function () {
+                        let o = couldP.eq(maxIndex), aid = o.attr(isTaoBaoPage?'data-activityid':'data-activeid');
+                        activityId[aid] = 1;
+                        couldP.eq(maxIndex).mouseenter().find('.j_couldActVal').click();
+                        console.log("第",maxIndex,"张优惠券领券");
+                        storage.setItem({
+                            name:'activityId'+id,
+                            value:activityId,
+                            expires:86400000 * 3
+                        });
+
+                    }, 2500);
+                    showQuanTools([]);
+                }
             };
 
             let qgTool = $("#qg_tool");
             let showQuanTools = function (quanArr) {
                 console.log("插入工具条");
                 let sysLqtxt = quanArr.length>0?'为您成功领取【<b>'+quanArr.length+'</b>】张':'';
-                let str = '<span>'+sysLqtxt+' <a class="qg-quan">优惠券</a> <a href="javascript:;" id="qg_quan_more">更多 <i class="fa fa-caret-down"></i></a></span>';
+                let str = '<span class="qg-quan-p">'+sysLqtxt+' <a class="qg-quan">优惠券</a> <a href="javascript:;" id="qg_quan_more">更多 <i class="fa fa-caret-down"></i></a></span>';
                 qgTool.append(str);
             };
             //判断是否要登录了
@@ -482,14 +512,6 @@ $(function () {
                     // txt += s + "秒" + ms;
                     txt += s + "秒";
                     countDown.downTimeDom.text(txt);
-
-                    if(cha <= 1000){
-                        //todo 开始抢购 开抢页面由bg.js统一打开处理
-                        if (qgInfo) {
-                            //location.href = qgInfo.url.str_replace('detail.','detail.m.');
-                            return;
-                        }
-                    }
                 }
             }
             countDown.info.systemTime = countDown.info.systemTime*1 + 1000;
@@ -540,6 +562,7 @@ $(function () {
             }
             console.log(countDown.info.systemTime - 60000, countDown.info.startTime,countDown.info.systemTime - 60000 > countDown.info.startTime);
             qgInfo['start_time'] = countDown.info.startTime;
+            qgInfo['shop_id'] = countDown.info.shopId;
             if(addQgList.propSelectFlag) {
                 return;
             }

@@ -35,11 +35,13 @@
                     <tr v-for="(v,k) in tab.li[0].data.data">
                         <td><a :href="v.url" target="_blank">
                             <img v-lazy="'https:'+tab.li[0].data.desc[v.num_iid].images[1]"
-                                 :key="'https:'+tab.li[0].data.desc[v.num_iid].images[1]" width="60">
+                                 :key="'https:'+tab.li[0].data.desc[v.num_iid].images[1]" width="60" class="pic">
                             </a>
                         </td>
                         <td class="title"><div>{{tab.li[0].data.desc[v.num_iid].title}}</div></td>
-                        <td>{{timestampToTime(v.start_time)}}</td>
+                        <td><strong class="price">￥{{tab.li[0].data.desc[v.num_iid].price}}</strong><br>
+                            <span class="hot-qiang">抢：{{timestampToTime(v.start_time)}}</span>
+                        </td>
                         <td>
                             <a class="layui-btn layui-btn-xs" :href="v.url" target="_blank">查看</a>
                             <a class="layui-btn layui-btn-danger layui-btn-xs" @click="delQg(k)">删除</a>
@@ -70,13 +72,15 @@
                 <tr v-for="(v,k) in tab.li[1].data.data">
                     <td><a :href="v.url" target="_blank">
                         <img v-lazy="'https:'+tab.li[1].data.desc[v.num_iid].images[1]"
-                             :key="'https:'+tab.li[1].data.desc[v.num_iid].images[1]" width="60">
+                             :key="'https:'+tab.li[1].data.desc[v.num_iid].images[1]" width="60" class="pic">
                     </a>
                     </td>
                     <td class="title"><div>
                         <i :title="v.status ==1 ? '抢购成功' : '抢购失败'" :class="['layui-icon',v.status ==1 ? 'layui-icon-face-smile-fine qg-success':'layui-icon-face-cry qg-finl']"></i>
                          {{tab.li[1].data.desc[v.num_iid].title}}</div></td>
-                    <td>{{timestampToTime(v.start_time)}}</td>
+                    <td><strong class="price">￥{{tab.li[1].data.desc[v.num_iid].price}}</strong><br>
+                        <span class="hot-qiang">抢：{{timestampToTime(v.start_time)}}</span>
+                    </td>
                     <td>
                         <strong style="color: #FF5722;">0</strong>
                     </td>
@@ -117,7 +121,7 @@
                 <tr v-for="(v,k) in tab.li[2].data.data" :title="v.jhs.price_usp_list.join('  ')">
                     <td><a :href="'https://detail.tmall.com/item.htm?id='+v.num_iid" target="_blank">
                         <img v-lazy="'https:'+v.images[0]"
-                             :key="'https:'+v.images[0]" width="60">
+                             :key="'https:'+v.images[0]" width="60" class="pic">
                     </a>
                     </td>
                     <td class="title"><div>{{v.title}}</div></td>

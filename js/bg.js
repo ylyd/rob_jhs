@@ -243,7 +243,9 @@ var Util = {
                     }
                     let eTime = new Date().getTime();
                     let tbTime = d.data.time*1;
-                    Util.systemTime = tbTime + 2;
+                    if (!Util.startCheckQgList) {
+                        Util.systemTime = tbTime + 2;
+                    }
                     //提前 4个 open coupon 时间单位
                     let cheDTime = Util.checkQgLazyTime * (Object.keys(Util.qgList[minStime]).length * 1 + 4);
                     cheDTime = Math.max(1800000,cheDTime);//取一个大的
@@ -278,13 +280,18 @@ var Util = {
     },
     arrayMin:function(arrs, now){
         let min = arrs[0];
-        for(let i = 1; i < arrs.length; i++) {
+        for(let i = 0; i < arrs.length; i++) {
             if(arrs[i] > now && arrs[i] < min) {
                 min = arrs[i];
+            } else if(arrs[i] < now){
+                //删除已经过去的列表
+                delete Util.qgList[arrs[i]];
             }
         }
+        console.log("最小抢购时间",min , now,min - now);
         return min > now ? min : 0;
     },
+    loginTbId:0,
     loginTb:function(){
         console.log("准备登陆");
         chrome.storage.sync.get('tb_info', function(r) {
@@ -297,9 +304,11 @@ var Util = {
                         index:0,
                         selected:false
                     }, tab => {
-                        console.log("tab",tab);
+                        Util.loginTbId= tab.id;
                         setTimeout(function () {
-                            chrome.tabs.remove(tab.id);
+                            if(Util.loginTbId){
+                                chrome.tabs.remove(Util.loginTbId);
+                            }
                         },12000);
                     });
                 } else {
@@ -580,6 +589,27 @@ var Util = {
                 console.log("错误提示： " + xhr.status + " " + xhr.statusText,error);
             }
         });
+    },
+    quanUrlArr:[],
+    quanUrlTabId:0,
+    lingQuanOpenTab:function (urlArr) {
+        Util.quanUrlArr = urlArr;
+        chrome.tabs.create({
+            url:urlArr.pop(),//多条抢购使用加入购物车 单条是 立即抢
+            selected:false
+        }, tab => {
+            Util.quanUrlTabId = tab.id;
+        });
+    },
+    getQuanUrl:function () {
+        if(Util.quanUrlArr.length>0) {
+            return Util.quanUrlArr.pop();
+        } else {
+            if (Util.quanUrlTabId){
+                chrome.tabs.remove(Util.quanUrlTabId);
+            }
+            Util.quanUrlTabId = 0;
+        }
     }
 };
 
@@ -704,19 +734,39 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
             Util.currentQgSucNum++;
             let keyarr = Object.keys(Util.qgList[Util.currentQgKey]);
             if (Util.openCartabTd && Util.currentQgSucNum >= keyarr.length) {
+                let shopIdArr = [],nowQg=Util.qgList[Util.currentQgKey];
+                for (let s in nowQg){
+                    shopIdArr.push(nowQg[s].shop_id);
+                }
                 chrome.tabs.sendRequest(Util.openCartabTd,
-                    {num_iids:keyarr,jhs_num_iid: Util.jhsNumIid,start_time:Util.currentQgKey},
+                    {num_iids:keyarr,shop_id_arr:shopIdArr,jhs_num_iid: Util.jhsNumIid,start_time:Util.currentQgKey},
                     r => {
                         console.log('刷新购物车开始提交start_time='+Util.timestampToTime(Util.currentQgKey));
                     });
             }
-
             break;
         case 'mustLogin':
             Util.loginTb();
             break;
         case 'upTbId':
             Util.setTbId(r.data);
+        case 'lingquan':
+            Util.lingQuanOpenTab(r.data);
+            break;
+        case 'getQuanUrl':
+            let url = Util.getQuanUrl();
+            if (url) {
+                sendResponse(url);
+            }
+            break;
+        case 'getCarSubmitTime':
+            let num_iidArr = Object.keys(Util.qgList[Util.currentQgKey]);
+            let shopIdArr = [],nowQg=Util.qgList[Util.currentQgKey];
+            for (let s in nowQg){
+                shopIdArr.push(nowQg[s].shop_id);
+            }
+            sendResponse({num_iids:num_iidArr,shop_id_arr:shopIdArr,jhs_num_iid: Util.jhsNumIid,start_time:Util.currentQgKey});
+            break;
         default:
             break;
     }
@@ -821,6 +871,12 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
     if (tabId == Util.proofTabId) {
         Util.proofTabId = 0;
         console.log("清理Util.proofTabId",Util.proofTabId);
+    }
+    if(tabId == Util.quanUrlTabId) {
+        Util.quanUrlTabId = 0;
+    }
+    if(tabId == Util.loginTbId) {
+        Util.loginTbId = 0;
     }
 
     if (tabId == Util.openCartabTd) {

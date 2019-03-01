@@ -65,3 +65,4 @@ p::after{content: "..."; position: absolute; bottom: 0; right: 0; padding-left: 
 }
 .qg-success{color: #5FB878;font-weight: bold;}
 .qg-finl{color: #FF5722;font-weight: bold;}
+.pic{max-height: 60px;}

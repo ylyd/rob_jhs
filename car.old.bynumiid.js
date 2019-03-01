@@ -1,7 +1,7 @@
-var shop_id_arr = sessionStorage['shop_id_arr']?sessionStorage['shop_id_arr'].split(','):[];
+var num_iidArr = sessionStorage['num_iids']?sessionStorage['num_iids'].split(','):[];
 
 var load = function(request,lazyTime) {
-    sessionStorage['shop_id_arr'] = request['shop_id_arr'].join(",");
+    sessionStorage['num_iids'] = request['num_iids'].join(",");
     let jhsNowTimeInfoUrl = '//dskip.ju.taobao.com/detail/json/item_dynamic.htm?item_id='+request.jhs_num_iid;
     var sTime = 0;
     $.ajax({
@@ -52,10 +52,10 @@ var load = function(request,lazyTime) {
         }
     });
 };
-if (shop_id_arr.length == 0) {
+if (num_iidArr.length == 0) {
     //主动拿时间
     chrome.extension.sendRequest({type: "getCarSubmitTime"},r => {
-        if (r && r['shop_arr_id']) load(r,1000);
+        load(r,1000);
     });
 }
 
@@ -68,11 +68,10 @@ chrome.extension.onRequest.addListener(
 );
 
 $(function () {
-    if(shop_id_arr.length>0) {
-        for (let i in shop_id_arr) {
+    if(num_iidArr.length>0) {
+        for (let i in num_iidArr) {
             try{
-                let d = $(".bundlev2 .contact a[href*='shop_id="+shop_id_arr[i]+"']").closest(".tcont")
-                    .find('.shopcb');
+                let d = $(".allItemv2 .item-img a[href*='id="+num_iidArr[i]+"']").closest(".item-detail").prev('.item-cb');
                 d.find("label").click();
                 d.find("input[type=checkbox]").prop("checked",true);
                 console.log(d.attr("data-reactid"));
@@ -81,14 +80,14 @@ $(function () {
             }
             
         }
-        sessionStorage.removeItem('shop_id_arr');
+        sessionStorage.removeItem('num_iids');
 
-        let checked = $('.bundlev2  .shopcb input:checked');
+        let checked = $('.item-cb input:checked');
         let da = new Date();
         chrome.extension.sendRequest({type: "log", data:["开抢点击",da.getMinutes()+":"+da.getSeconds(),"选中了",checked.length,"个"]});
-        if (checked.length != shop_id_arr.length) {
-            console.log(checked.length, shop_id_arr.length);
-            location.reload();
+        if (checked.length != num_iidArr.length) {
+            console.log(checked.length, num_iidArr.length);
+            // location.reload();
             return;
         }
 
@@ -105,4 +104,4 @@ var timestampToTime = function(timestamp) {
     s = date.getSeconds();
     return Y+M+D+h+m+s;
 };
-console.log(timestampToTime(new Date().getTime()),'shop_id_arr',shop_id_arr);
+console.log(timestampToTime(new Date().getTime()),'num_iidArr',num_iidArr);

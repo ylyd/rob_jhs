@@ -56,6 +56,10 @@
     {
       "matches": ["*://maliprod.alipay.com/w/trade_pay.do*","*://maliprod.alipay.com/batch_payment.do*"],
       "js": ["js/zepto.min.js","js/pay.js"]
+    },
+    {
+      "matches": ["*://taoquan.taobao.com/coupon/unify_apply*"],
+      "js": ["js/zepto.min.js","js/lingquan.js"]
     }
   ],
 "permissions": [

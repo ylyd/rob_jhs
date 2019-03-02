@@ -5,7 +5,8 @@ if (qgId && qgId[1]) {
 }
 var skuId = qgUrl.match(/skuId=(\d{5,20})/);
 if (skuId && skuId[1]) {
-    skuId = '&skuId='+skuId[1];
+    skuId = skuId[1];
+    console.log(skuId);
 } else {
     skuId = '';
 }
@@ -14,6 +15,13 @@ var qgInfo = null;
 chrome.extension.sendRequest({type: "getLocalQgItemById", id:qgId}, function(r){
     if(r && r.info){
         qgInfo = JSON.parse(r.info);
+        if (qgInfo && qgInfo['url']) {
+          let sku_id =   qgInfo['url'].match(/skuId=(\d{5,20})/);
+            if (sku_id && sku_id[1]) {
+                skuId = sku_id[1];
+                console.log("缓存skuid",skuId);
+            }
+        }
     }
 });
 
@@ -104,27 +112,24 @@ $(function () {
                         }
                     } else {
                         //没有获取到聚划算的节点 则 走滴定仪流程
-                        if (!isTaoBaoPage) {
-                            setTimeout(function () {
-                                let tbAction = $(".tb-action");
-                                tbAction.before('<div id="'+qgDomParentId+'" class="J_ButtonWaitWrap"></div>');
-                                info = {
-                                    endTime:0,
-                                    startTime:0,
-                                    systemTime:info.systemTime*1+1000,
-                                    shopId:d.data.seller.shopId
-                                };
-                                console.log("qgInfo",qgInfo);
-                                if (qgInfo) {
-                                    console.log("不是聚划算但是有抢购记录");
-                                    info['startTime'] = qgInfo.start_time;
-                                    console.log('赋值');
-                                }
-                                console.log('调用countDown.go(info)');
-                                countDown.go(info);
-                            },1000);
+                        info = {
+                            endTime:0,
+                            startTime:0,
+                            systemTime:(isTaoBaoPage?new Date().getTime():info.systemTime)*1+1000,
+                            shopId:d.data.seller.shopId
+                        };
+                        setTimeout(function () {
+                            let tbAction = $(".tb-action");
+                            tbAction.before('<div id="'+qgDomParentId+'" class="J_ButtonWaitWrap"></div>');
 
-                        }
+                            if (qgInfo) {
+                                console.log("不是聚划算但是有抢购记录");
+                                info['startTime'] = qgInfo.start_time;
+                                console.log('赋值');
+                            }
+                            console.log('调用countDown.go(info)');
+                            countDown.go(info);
+                        },1000);
                     }
                 }
             }
@@ -184,12 +189,11 @@ $(function () {
                 if (propPath) {
                     propPath = propPath.split(';');
                     for (let i in propPath) {
-                        JiskuObj.find("li[data-value="+propPath[i]+"]").click();
+                        console.log("li data-value =",propPath[i]);
+                        JiskuObj.find("li[data-value='"+propPath[i]+"']").click();
                     }
                 }
-                $("#J_isku .tb-selected").each(function (i,v) {
-                    skuArr.push($(v).attr('data-value'));
-                });
+                addQgList.getTbSkuUrl(location.href);
             }
             console.log("初始化html - ok");
             if (qgDomParent.data('ok')) {
@@ -347,6 +351,7 @@ $(function () {
                                 let openQuanWindow = function (url) {
                                     layer.open({
                                         type: 2,
+                                        zIndex:999999999,
                                         title: false,
                                         area: ['361px', '480px'],
                                         shade: 0.3,
@@ -385,7 +390,7 @@ $(function () {
                 skin:3,   //皮肤颜色，默认随机，可选值：0-8,或者直接标注颜色值;
                 step:5,   //选择时间分钟的精确度;
                 callback:function(v,e){
-                    console.log(v,e);
+                    console.log(v,countDown.info.systemTime,v * 1000,countDown.info.systemTime-v * 1000);
                     if (countDown.info.systemTime > v * 1000){
                         layer.msg('你选择的开抢时间已经过去,请从新设定！');
                         return;
@@ -408,7 +413,7 @@ $(function () {
             } else {
                 countDown.kqBtn.text("加入定时抢购");
             }
-            var prop = $(".tb-sku .tb-prop .J_TSaleProp");
+            var prop = $(isTaoBaoPage?"#J_isku .J_TSaleProp":".tb-sku .tb-prop .J_TSaleProp");
             //按钮的响应样式 sku 的连接改变或者 够买的数量改变都会改变按钮的样式
             var changeQgAction = function(val){
                 if (qgInfo && (location.href != qgInfo.url || (val && val!=qgInfo.count))) {
@@ -422,7 +427,14 @@ $(function () {
                 let o = $(this);
                 if(!o.hasClass('tb-out-of-stock')) {
                     //判断切换是否要更新已经保存的抢购信息
-                    changeQgAction();
+                    if (isTaoBaoPage) {
+                        setTimeout(function () {
+                            addQgList.getTbSkuUrl();
+                            changeQgAction();
+                        },300);
+                    } else{
+                        changeQgAction();
+                    }
                     o.closest('.tb-prop').removeClass('place-select-prop');
                 }
             });
@@ -569,22 +581,38 @@ $(function () {
     };
 
     var addQgList = {
+        getTbSkuUrl:function(url){
+            if (!url) url = location.href;
+            let skuArr = [];
+            $("#J_isku .tb-selected").each(function (i,v) {
+                skuArr.push($(v).attr('data-value'));
+            });
+            if (skuArr.length>0) {
+                let propPath = skuArr.join(';');
+                let skuId2 = skuBase[propPath];
+                if(!skuId2) {
+                    console.log('未找到sku');
+                    return url;
+                }
+                console.log('url',url);
+                if (url.indexOf('skuId=')!=-1){
+                    console.log("skuId!=-1",skuId2);
+                    url = url.replace(/skuId=\d+/,'skuId='+skuId2);
+                } else {
+                   url+='&skuId='+skuId2;
+                }
+            }
+            console.log("push_url",url);
+            window.history.pushState({},0, url);
+            return url;
+        },
         currentUrl:(qgInfo ? qgInfo.url : null),
         propSelectFlag:false,
         add:function () {
             if(!qgInfo) qgInfo = {};
             qgInfo.url = location.href;
             if (isTaoBaoPage) {
-                //计算sku
-                let skuArr = [];
-                $("#J_isku .tb-selected").each(function (i,v) {
-                    skuArr.push($(v).attr('data-value'));
-                });
-                if (skuArr.length>0) {
-                    let propPath = skuArr.join(';');
-                    skuId = skuBase[propPath];
-                    qgInfo.url+='&skuId='+skuId;
-                }
+                qgInfo.url= addQgList.getTbSkuUrl(qgInfo.url);
             }
             qgInfo.count = $((isTaoBaoPage ? "#J_IptAmount" : "#J_Amount")+" .mui-amount-input").val();
             if (countDown.info.systemTime - 60000 > countDown.info.startTime){

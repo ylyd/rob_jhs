@@ -21,8 +21,7 @@
 "content_scripts": [
     {
       "matches": [
-        "*://detail.tmall.com/*","*://chaoshi.detail.tmall.com/*","*://item.taobao.com/item.htm*",
-        "*://h5.m.taobao.com/awp/core/detail.htm*","*://detail.tmall.hk/*"
+        "*://detail.tmall.com/*","*://chaoshi.detail.tmall.com/*","*://item.taobao.com/item.htm*","*://detail.tmall.hk/*"
       ],
       "css": ["css/content.css","css/minippfix.css","js/date/style.css"],
       "js": ["js/jquery.js","js/layer/layer.js","js/wxLogin.js","js/storage.js","js/date/Ecalendar.jquery.min.js","js/content.js"]

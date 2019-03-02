@@ -223,18 +223,18 @@
 .quan-ul-list li{display: block;    margin: 15px 20px 20px 18px;}
 .fl{float: left;}
 .fr{float:right;}
-.quan-head{height: 25px;   border: 1px #ffffff dotted;   margin: 5px;
+#seller_quan a.quan-head{height: 25px;   border: 1px #ffffff dotted;   margin: 5px;
     padding-right: 10px;
     line-height: 25px;
     background-position: -125px -25px;
     font-size: 14px;
     font-weight: 700;
-    color: #fff;
+    color: #ffffff;
     font-family: Arial;
     padding-left: 8px;
     background-color: #3abec0;
 }
-.quan-head-red{background-color: #fd7778;}
+#seller_quan a.quan-head-red{background-color: #fd7778;}
 .quan-head:hover,.quan-lingqu:hover{text-decoration:none;cursor: pointer;}
 .quan-content{display: inline-block;}
 .coupon-title{    color: #6D6D6D;}
@@ -246,11 +246,12 @@
     line-height: 23px;
     text-align: center;
 }
-.coupon-unreceived{color: #666;cursor: pointer;}
-.coupon-received{color: #C9C9C9;
+#seller_quan a.coupon-unreceived{color: #666;cursor: pointer;}
+#seller_quan a.coupon-received{color: #C9C9C9;
     border-color: transparent;
     _border-color: #fff;
     width: 50px;
     border-width: 1px 0;
 }
 .cl{clear: both;width: 100%;height: 0;}
+#detail .tb-property-x .tb-meta{z-index:1;}

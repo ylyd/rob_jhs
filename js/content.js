@@ -449,7 +449,7 @@ $(function () {
             });
             //初始化够买数量
             if (qgInfo && qgInfo.count) {
-                jAmount.find('.mui-amount-input').val(qgInfo.count);
+                jAmount.find('.mui-amount-input,#J_IptAmount').val(qgInfo.count);
             }
             //点击加入抢购按钮的逻辑
             countDown.kqBtn.click(function () {
@@ -614,7 +614,7 @@ $(function () {
             if (isTaoBaoPage) {
                 qgInfo.url= addQgList.getTbSkuUrl(qgInfo.url);
             }
-            qgInfo.count = $((isTaoBaoPage ? "#J_IptAmount" : "#J_Amount")+" .mui-amount-input").val();
+            qgInfo.count = $(isTaoBaoPage ? "#J_IptAmount" : "#J_Amount"+" .mui-amount-input").val();
             if (countDown.info.systemTime - 60000 > countDown.info.startTime){
                 layer.msg('加入失败。开抢时间已经过去,请从新设定开抢时间！');
                 return;

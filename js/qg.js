@@ -12,12 +12,12 @@ if (skuId && skuId[1]) {
 //获取抢购的信息
 var qgInfo = null,systemTime = new Date().getTime();
 $(function () {
-
+    let isTaoBaoPage = qgUrl.indexOf('taobao.com') != -1;
     chrome.extension.sendRequest({type: "getLocalQgItemById", id:qgId}, function(r){
         console.log("输出调试",r);
         if(r && r.info){
             qgInfo = JSON.parse(r.info);
-            console.log("输出调试1");
+            console.log("输出调试1",qgInfo);
             let jhsNowTimeInfoUrl = '//dskip.ju.taobao.com/detail/json/item_dynamic.htm?item_id='+r.jhs_num_iid;
             var sTime = 0;
             $.ajax({
@@ -56,9 +56,9 @@ $(function () {
                             if (isCar) {
                                 console.log("点击decision");
                                 //淘宝的加入购物车
-                                if (qgUrl.indexOf('h5.m.taobao.com') != -1) {
+                                if (isTaoBaoPage) {
                                     console.log("点击decision0");
-                                    $(".bottom-bar .cart").click();
+                                    $(".bottom-bar .cart .btn-title").click();
                                 } else {
                                     console.log("点击decision1");
                                     $(".widgets-cover .footer .ok p").click();
@@ -67,11 +67,17 @@ $(function () {
                             } else {
                                 console.log("点击1");
                                 chrome.extension.sendRequest({type: "qgBegin", id:qgId,systemTime:sTime,rtime:timeArr[index]});
-                                window.location.href = 'https://buy.m.tmall.com/order/confirmOrderWap.htm?enc=%E2%84%A2&itemId='+
-                                    qgId+'&exParams=%7B%22etm%22%3A%22%22%7D'+skuId+'&quantity='+
-                                    qgInfo.count+'&divisionCode='+qgInfo['area_id']+'&userId='+qgInfo['tb_id']+
-                                    '&buyNow=true&_input_charset=utf-8&areaId='+qgInfo['area_id']+'&addressId='
-                                    +qgInfo['address_id']+'&x-itemid='+qgId+'&x-uid='+qgInfo['tb_id'];
+                                if (isTaoBaoPage) {
+                                    window.location.href = 'https://h5.m.taobao.com/cart/order.html?buildOrderVersion=3.0' +skuId+
+                                        '&quantity='+qgInfo.count+'&itemId='+qgId+'&buyNow=true&exParams=%7B%22id%22%3A%22'+
+                                        qgId+'%22%7D&spm=a2141.7c.buy.i0';
+                                } else {
+                                    window.location.href = 'https://buy.m.tmall.com/order/confirmOrderWap.htm?enc=%E2%84%A2&itemId='+
+                                        qgId+'&exParams=%7B%22etm%22%3A%22%22%7D'+skuId+'&quantity='+
+                                        qgInfo.count+'&divisionCode='+qgInfo['area_id']+'&userId='+qgInfo['tb_id']+
+                                        '&buyNow=true&_input_charset=utf-8&areaId='+qgInfo['area_id']+'&addressId='
+                                        +qgInfo['address_id']+'&x-itemid='+qgId+'&x-uid='+qgInfo['tb_id'];
+                                }
                             }
                         },timeout);
 

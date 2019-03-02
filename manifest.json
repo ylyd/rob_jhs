@@ -42,7 +42,7 @@
     },
     {
       "matches" : ["*://h5.m.taobao.com/awp/core/detail*"],
-      "js": ["js/zepto.min.js","js/tbqg.js"]
+      "js": ["js/zepto.min.js","js/qg.js"]
     },
     {
       "matches" : ["*://h5.m.taobao.com/mlapp/cart*"],

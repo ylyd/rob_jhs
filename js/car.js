@@ -1,4 +1,10 @@
 var shop_id_arr = sessionStorage['shop_id_arr']?sessionStorage['shop_id_arr'].split(','):[];
+let unique = function unique(a) {
+    let seen = {};
+    return a.filter(function(item) {
+        return seen.hasOwnProperty(item) ? false : (seen[item] = true);
+    });
+};
 
 var load = function(request,lazyTime) {
     sessionStorage['shop_id_arr'] = request['shop_id_arr'].join(",");
@@ -57,6 +63,8 @@ if (shop_id_arr.length == 0) {
     chrome.extension.sendRequest({type: "getCarSubmitTime"},r => {
         if (r && r['shop_arr_id']) load(r,1000);
     });
+} else {
+    shop_id_arr = unique(shop_id_arr);
 }
 
 chrome.extension.onRequest.addListener(
@@ -68,6 +76,14 @@ chrome.extension.onRequest.addListener(
 );
 
 $(function () {
+    if (!sessionStorage['reload_count']) {
+        sessionStorage['reload_count'] = 0;
+    }
+    sessionStorage['reload_count'] = sessionStorage['reload_count'] + 1;
+    if (sessionStorage['reload_count'] > 20) {
+        sessionStorage.removeItem('reload_count');
+        return;
+    }
     if(shop_id_arr.length>0) {
         for (let i in shop_id_arr) {
             try{
@@ -81,7 +97,6 @@ $(function () {
             }
             
         }
-        sessionStorage.removeItem('shop_id_arr');
 
         let checked = $('.bundlev2  .shopcb input:checked');
         let da = new Date();
@@ -91,7 +106,8 @@ $(function () {
             location.reload();
             return;
         }
-
+        sessionStorage.removeItem('shop_id_arr');
+        sessionStorage.removeItem('reload_count');
         $(".footer .btn").click();
     }
 });

@@ -39,7 +39,7 @@
                             </a>
                         </td>
                         <td class="title"><div>{{tab.li[0].data.desc[v.num_iid].title}}</div></td>
-                        <td><strong class="price">￥{{tab.li[0].data.desc[v.num_iid].price}}</strong><br>
+                        <td><strong class="price">￥{{tab.li[0].data.desc[v.num_iid].price}}</strong> × {{v.count}}<br>
                             <span class="hot-qiang">抢：{{timestampToTime(v.start_time)}}</span>
                         </td>
                         <td>
@@ -78,7 +78,7 @@
                     <td class="title"><div>
                         <i :title="v.status ==1 ? '抢购成功' : '抢购失败'" :class="['layui-icon',v.status ==1 ? 'layui-icon-face-smile-fine qg-success':'layui-icon-face-cry qg-finl']"></i>
                          {{tab.li[1].data.desc[v.num_iid].title}}</div></td>
-                    <td><strong class="price">￥{{tab.li[1].data.desc[v.num_iid].price}}</strong><br>
+                    <td><strong class="price">￥{{tab.li[1].data.desc[v.num_iid].price}}</strong>  × {{v.count}}<br>
                         <span class="hot-qiang">抢：{{timestampToTime(v.start_time)}}</span>
                     </td>
                     <td>
@@ -140,8 +140,8 @@
             </table>
             <div id="page2"></div>
         </div>
-        <div :class="{'layui-tab-item':1,'layui-show':liSelectIndexLocal==3}"></div>
-        <div :class="{'layui-tab-item':1,'layui-show':liSelectIndexLocal==4}"></div>
+        <div :class="{'layui-tab-item':1,'layui-show':liSelectIndexLocal==3}">等待上线...</div>
+        <div :class="{'layui-tab-item':1,'layui-show':liSelectIndexLocal==4}">等待上线...</div>
     </div>
 </div>
 <script src="js/jquery.js"></script>

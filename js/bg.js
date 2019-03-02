@@ -283,8 +283,8 @@ var Util = {
         for(let i = 0; i < arrs.length; i++) {
             if(arrs[i] > now && arrs[i] < min) {
                 min = arrs[i];
-            } else if(arrs[i] < now){
-                //删除已经过去的列表
+            } else if(now - arrs[i] > 600000 ){
+                //删除已经过去10分钟的列表
                 delete Util.qgList[arrs[i]];
             }
         }
@@ -575,13 +575,68 @@ var Util = {
                         d = d.data.result;
                         let quan = {
                             num_iid:d.item.itemId,
-                            url:d.item.shareUrl,
                             amount:d.amount,
                             start_time:d.effectiveStartTime,
                             end_time:d.effectiveEndTime,
                             star_fee:d.startFee
                         };
-                        Util.addQuan(quan,true);
+                        let reg=/"activityId"%3A"(.*)"%2C"/m;
+                        url = decodeURI(url);
+                        let act = url.match(reg);
+                        console.log(act);
+                        if (act && act[1]) {
+                            quan['activity_id'] = act[1];
+                            if(quan['start_time'] && quan['end_time']) {
+                                quan['start_time'] =  Date.parse(new Date(quan['start_time'])) / 1000;
+                                quan['end_time'] =  Date.parse(new Date(quan['end_time'])) / 1000;
+                            }
+                            Util.addQuan([quan]);
+                        } else {
+                            quan['url'] = d.item.shareUrl;
+                            Util.addQuan(quan,true);
+                        }
+
+                    }
+                }
+            },
+            error:function (xhr,status,error) {
+                console.log("错误提示： " + xhr.status + " " + xhr.statusText,error);
+            }
+        });
+    },
+    //获取阿里妈妈券
+    getSellerQuan:function(url){
+        $.ajax({
+            url:url,
+            method:'GET',
+            dataType:'text',
+            timeout:1000,
+            success:function (d) {
+                if (d.indexOf('mtopjsonp1(')!=-1){
+                    d = JSON.parse(d.slice(d.indexOf('(') + 1,-1));
+                    if (d.ret[0] == 'SUCCESS::调用成功' && d.data && d.data.success) {
+                        d = d.data.result;
+                        let quan = {
+                            amount:d.amount,
+                            start_time:d.effectiveStartTime,
+                            end_time:d.effectiveEndTime,
+                            star_fee:d.startFee
+                        };
+
+                        url = decodeURI(url);
+
+                        let sel = url.match(/data={"sellerId"%3A"(\d+)"%2C"activityId"%3A"(\w+)"%2C/m);
+                        console.log(url,sel);
+                        if (sel && sel[1]) {
+                            quan['seller'] = sel[1];
+                            quan['activity_id'] = sel[2];
+                        }
+                        // if(quan['start_time'] && quan['end_time']) {
+                        //     quan['start_time'] =  Date.parse(new Date(quan['start_time'])) / 1000;
+                        //     quan['end_time'] =  Date.parse(new Date(quan['end_time'])) / 1000;
+                        // }
+                        Util.addQuan(quan,1);
+
                     }
                 }
             },
@@ -657,6 +712,13 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
                     }
                 }
             });
+            break;
+        case 'getGYCouponUrl':
+            if (!sessionStorage[r.data.num_iid]) {
+                Util.getGY(r.data, true);
+            }
+            let coupon = JSON.parse(sessionStorage[r.data.num_iid]);
+            sendResponse({coupon_url:coupon.coupon_click_url});
             break;
         //解析click url 跳转后的302 location
         case 'getClickUrl':
@@ -759,6 +821,26 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
                 sendResponse(url);
             }
             break;
+        case 'getQuan':
+            $.ajax({
+                url:Host+'/quan/getQuan',
+                data:{num_iid:r.data.num_iid,seller:r.data.seller,user_token:USER_TOKEN},
+                dataType:'json',
+                timeout:1000,
+                success:function (d) {
+                    sendResponse(d);
+                },
+                error:function (xhr,status,error) {
+                    sendResponse(0);
+                    console,log("错误提示： " + xhr.status + " " + xhr.statusText);
+                },
+                complete : function(XMLHttpRequest,status){ //请求完成后最终执行参数
+                    if(status == 'timeout'){
+                        console.log("请求超时，请稍后再试！",'','error');
+                    }
+                }
+            });
+            break;
         case 'getCarSubmitTime':
             let num_iidArr = Object.keys(Util.qgList[Util.currentQgKey]);
             let shopIdArr = [],nowQg=Util.qgList[Util.currentQgKey];
@@ -767,6 +849,25 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
             }
             sendResponse({num_iids:num_iidArr,shop_id_arr:shopIdArr,jhs_num_iid: Util.jhsNumIid,start_time:Util.currentQgKey});
             break;
+        case 'lqSellerQuan':
+            document.cookie = r.data.cookie;
+            $.ajax({
+                url:r.data.url,
+                method:'GET',
+                dataType:'text',
+                timeout:1000,
+                success:function (d) {
+                    if (d.indexOf('jsonp703(')!=-1){
+                        d = JSON.parse(d.slice(d.indexOf('(') + 1,-1));
+                        console.log("领券成功",d);
+                        sendResponse(d);
+                    }
+                },
+                error:function (xhr,status,error) {
+                    console.log("错误提示： " + xhr.status + " " + xhr.statusText,error);
+                }
+            });
+            break;
         default:
             break;
     }
@@ -774,6 +875,12 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
 // web请求监听，最后一个参数表示阻塞式，需单独声明权限：webRequestBlocking ["<all_urls>"]
 chrome.webRequest.onBeforeRequest.addListener(details => {
     console.log(details);
+    //阿里妈妈券
+    if(details.url.indexOf("acs.m.taobao.com/h5/mtop.alimama.union.hsf.mama.coupon.get") != -1) {
+        console.log("二合一券推荐页面",details.tabId);
+        Util.getSellerQuan(details.url);
+        return;
+    }
     //搜罗优惠券连接
     if(details.url.indexOf("acs.m.taobao.com/h5/mtop.alimama.union.xt.en.api.entry") != -1) {
         console.log("二合一券推荐页面",details.tabId);
@@ -860,7 +967,8 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
         "*://h5.m.taobao.com/awp/core/detail*",
         "*://acs.m.taobao.com/h5/mtop.alimama.union.hsf.coupon.get*",
         "*://mclient.alipay.com/h5/cashierPay.htm*",
-        "*://acs.m.taobao.com/h5/mtop.alimama.union.xt.en.api.entry*"
+        "*://acs.m.taobao.com/h5/mtop.alimama.union.xt.en.api.entry*",
+        "*://acs.m.taobao.com/h5/mtop.alimama.union.hsf.mama.coupon.get*"//seller券
     ],
     types:["main_frame","other","script"]
 }, ["blocking"]);

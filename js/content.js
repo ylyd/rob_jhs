@@ -18,21 +18,21 @@ chrome.extension.sendRequest({type: "getLocalQgItemById", id:qgId}, function(r){
 });
 
 $(function () {
-    let id = qgId;
-    var itemInfo = null;
-    var userInfo = null;
+    let id = qgId,sellerId = 0;
+    let itemInfo = null;
+    let userInfo = null;
     let sTime = new Date().getTime();
 
     let jhsItemInfoUrl = '//h5api.m.taobao.com/h5/mtop.taobao.detail.getdetail/6.0/?jsv=2.4.8&appKey=12574478&t='+(new Date().getTime())+'&sign=c4c5abe87a1c0743b85c0bba3f44b632&api=mtop.taobao.detail.getdetail&v=6.0&callback=mtopjsonp4&ttid=2017%40taobao_h5_6.6.0&AntiCreep=true&data=%7B%22itemNumId%22%3A%22'+id+'%22%7D';
     let isTaoBaoPage = qgUrl.indexOf('://item.taobao.com') != -1,skuBase = {},skuBaseBySkuId = {};
-    var qgDomParent = null,qgDomParentId = isTaoBaoPage ? "J_juValid" : "J_ButtonWaitWrap";
+    let qgDomParent = null,qgDomParentId = isTaoBaoPage ? "J_juValid" : "J_ButtonWaitWrap";
     $.ajax({
         url:jhsItemInfoUrl,
         method:'GET',
         dataType:'text',
         timeout:1000,
         success:function (d) {
-            var eTime = new Date().getTime();
+            let eTime = new Date().getTime();
             console.log(eTime,sTime,eTime-sTime);
             if (d.indexOf('mtopjsonp4(')!=-1){
                 d = JSON.parse(d.slice(d.indexOf('(') + 1,-1));
@@ -55,6 +55,8 @@ $(function () {
                         images:item.images.slice(0,2),
                         price:0
                     };
+
+                    sellerId = d.data.seller.userId;
                     if (!d.data.apiStack[0].value) {
                         layer.confirm('页面似乎遇到了一点错误，是否从新加载？', {
                             btn: ['嗯！确定','不了'] //按钮
@@ -93,9 +95,12 @@ $(function () {
                             setTimeout(function () {
                                 countDown.go(info);
                             },1000);
-                        } else if(qgInfo) {
-                            //立即抢
-                            console.log("立即抢");
+                        } else if(!isTaoBaoPage) {
+                            setTimeout(function () {
+                                let tbAction = $(".tb-action");
+                                tbAction.before('<div id="'+qgDomParentId+'" class="J_ButtonWaitWrap"></div>');
+                                countDown.go(info);
+                            },1000);
                         }
                     } else {
                         //没有获取到聚划算的节点 则 走滴定仪流程
@@ -153,7 +158,6 @@ $(function () {
                 '<span id="qg_down_time" ></span>' +
                 '<span id="qg_by_auto_time" title="您可以自定义抢购的时间进行抢购">自定义时间</span>'+
                 '<a id="qg_setting" title="使用前须知"><i class="fa fa-cogs"></i> 设置 & 帮助</a> ' +
-                '<div id="qg_tool"></div>' +
                 '<form method="post" id="qg_form"><div class="qg-gzh"><img src="//qr.api.cli.im/qr?data=http%253A%252F%252Fxiaoaidema.com&level=H&transparent=false&bgcolor=%23ffffff&forecolor=%23000000&blockpixel=12&marginblock=1&logourl=&size=260&kid=cliim&key=a8b261387b9f090b0f6c0a1bc3f48ae6">' +
                 '<br> <b>聚抢先公众号</b></div> <input type="hidden" name="tb_id"><input type="hidden" name="area_id">' +
                 '<input type="hidden" name="address_id">' +
@@ -168,7 +172,11 @@ $(function () {
                 '<li>2. 插件抢购在网络状况良好时，可以瞬间为您抢到宝贝。这时需要您立即付款以便抢到前<strong>n</strong> 名的优惠价格。您可以提前设置好支付密码以便插件自动付款，提高抢购几率。</li>' +
                 '<li>3. 插件不会泄露您的任何个人信息，所有信息加密处理。</li>' +
                 '<li>4. 插件会为您搜索最高优惠券【包括各种内部券】为您自动领取，走最优惠途径购买。</li>' +
-                '<li>5. 关注官方微信公众号，方便及时的知道您的抢购结果，随时随地 添加、取消抢购，还有机会领取各种购物红包。</li></ul></form></div><a id="kaiqiang_btn"></a>' +
+                '<li>5. 关注官方微信公众号，方便及时的知道您的抢购结果，随时随地 添加、取消抢购，还有机会领取各种购物红包。</li></ul></form></div><a id="kaiqiang_btn"></a> ' +
+                '<a class="qg-quan" id="qg_quan" title="点开查看优惠券"><span class="txt">优惠券</span> <i class="fa fa-caret-down" title="更多"></i>' +
+                '</a><div id="qg_quan_list" class="qg-quan-list"><i class="qg-list-arrow"></i>' +
+                '<i class="qg-quan-load fa fa-spinner fa-spin" style="font-size: 30px;"></i>' +
+                '<div class="quan-ul-list-content"></div></div>' +
                 '<div class="tb-clear"></div>');
             if (isTaoBaoPage) {
                 let propPath = skuBaseBySkuId[skuId];
@@ -243,7 +251,130 @@ $(function () {
                 }).on('submit','#qg_form',function (e) {
                     //保存用户的设置
                     e.preventDefault();
+                }).on('click','#qg_quan',()=>{
+                    let o = $(this);
+                    if (!o.data('load')) {
+                        //todo 获取优惠券
+                        o.data('load',1);
+                        let sellerQuanUrl = 'https://cart.taobao.com/json/GetPriceVolume.do?sellerId='+
+                            sellerId+'&_ksTS='+new Date().getTime()+'_2068&callback=jsonp2069';
+                        let getSellerQuan = function(){
+                            $.ajax({
+                                url:sellerQuanUrl,
+                                method:'GET',
+                                dataType:'text',
+                                timeout:1000,
+                                success:function (sellerQuan) {
+                                    if (sellerQuan.indexOf('jsonp2069(')!=-1){
+                                        sellerQuan = JSON.parse(sellerQuan.slice(sellerQuan.indexOf('(') + 1,-1));
+                                        console.log(sellerQuan);
+                                        let str ='<ul id="seller_quan" class="quan-ul-list">';
+                                        let priceVolumes = sellerQuan['priceVolumes'];
+                                        for (let i in priceVolumes) {
+                                            let q = priceVolumes[i];
+                                            str+='<li><a class="quan-head fl"> ￥ '+q.price+'</a>' +
+                                                '<div class="quan-content"><span class="coupon-title">'+q.condition+'</span>' +
+                                                '<br><em class="coupon-time">'+q.timeRange+'</em></div>' +
+                                                '<a data-id="'+q.id+'" class="quan-lingqu fr  '+(q.status=='unreceived'?'coupon-unreceived':'coupon-received')+'">'+(q.status=='unreceived'?'领 取':'已 领')+'</a>' +
+                                                '<div class="cl"></div></li>';
+                                        }
+                                        str+='</ul>';
+                                        $(str).appendTo(qgQuanList.find('.quan-ul-list-content').css('background-color',"#fff")).
+                                        on('click','.coupon-unreceived',function () {
+                                            let lo = $(this);
+                                            if (!lo.data('lo')) {
+                                                let qid = lo.data('lo',1).attr("data-id");
+                                                let qUrl = 'https://taoquan.taobao.com/coupon/unify_apply.htm?activityId='
+                                                    +qid+'&sellerId='+sellerId+'&json=true&applyChannel=5&_ksTS='+
+                                                    new Date().getTime()+'_702&callBack=jsonp703';
+                                                chrome.extension.sendRequest({
+                                                    type: "lqSellerQuan",data:{url:qUrl,cookie:document.cookie}},r=>{
+                                                    if (r.success) {
+                                                        lo.removeClass('coupon-unreceived').
+                                                        addClass('coupon-received').text('已 领');
+                                                    } else {
+                                                        layer.msg('领券失败');
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    }
+                                },
+                                error:function (xhr,status,error) {
+                                   let index = layer.confirm('网络错误：是否刷新重试？', {
+                                        btn: ['嗯！重试','不了'] //按钮
+                                    }, function(){
+                                       layer.close(index);
+                                        getSellerQuan();
+                                    });
+                                    console.log("错误提示： " + xhr.status + " " + xhr.statusText,error);
+                                }
+                            });
+                        };
+
+                        getSellerQuan();
+
+                        chrome.extension.sendRequest({type: "getQuan",data:{num_iid:id,seller:sellerId}},r=>{
+                            if (r.status==1){
+                                let priceVolumes = r.data;
+                                let str ='<ul id="seller_quan" class="quan-ul-list">';
+                                for (let i in priceVolumes) {
+                                    let q = priceVolumes[i];
+                                    str+='<li><a class="quan-head quan-head-red fl"> ￥ '+q.amount+'</a>' +
+                                        '<div class="quan-content"><span class="coupon-title">满'+q.star_fee+'减'+q.amount+'</span>' +
+                                        '<br><em class="coupon-time">'+countDown.timestampToTime(q.start_time*1000,true)+
+                                        '-'+countDown.timestampToTime(q.end_time*1000,true)+'</em></div>' +
+                                        '<a data-url="'+(q.url?q.url:'')+'" data-id="'+(q.activity_id?q.activity_id:'')+'" class="quan-lingqu fr  coupon-unreceived">领 取</a>' +
+                                        '<div class="cl"></div></li>';
+                                }
+                                str+='</ul>';
+                                $(str).appendTo(qgQuanList.find('.quan-ul-list-content').css('background-color',"#fff")).
+                                on('click','.coupon-unreceived',function () {
+                                    let lo = $(this);
+                                    if (lo.attr('data-id')) {
+                                        let qid = lo.attr('data-id');
+                                        chrome.extension.sendRequest({
+                                            type: "getGYCouponUrl",data:{num_iid:id}},r=>{
+                                                if (r && r.coupon_url) {
+                                                    openQuanWindow(r.coupon_url+'&activityId='+qid);
+                                                }
+                                        });
+                                    } else if(lo.attr('data-url')) {
+                                        openQuanWindow(lo.attr('data-url'));
+                                    }
+                                });
+
+                                let openQuanWindow = function (url) {
+                                    layer.open({
+                                        type: 2,
+                                        title: false,
+                                        area: ['361px', '480px'],
+                                        shade: 0.3,
+                                        closeBtn: 0,
+                                        shadeClose: true,
+                                        content: url
+                                    });
+                                }
+                            } else {
+                                layer.msg('扫码登录');
+                            }
+                        });
+                    }
+                    console.log(qgQuanList.data('show'));
+                    if(qgQuanList.data('show')){
+                        qgQuanList.data('show',null).hide();
+                    } else {
+                        qgQuanList.data('show',1).show();
+                    }
+                    return false;
                 });
+            let qgQuanList = qgDomParent.find("#qg_quan_list");
+            $(document).on("click", function (e) {
+                let tar = $(e.target);
+                if(tar.closest("#qg_quan_list").length==0 && tar.closest("#qg_quan").length==0){
+                    qgQuanList.data('show',null).hide();
+                }
+            });
 
             countDown.downTimeDom = qgDomParent.find('#qg_down_time');
             $('#qg_by_auto_time').ECalendar({
@@ -349,126 +480,6 @@ $(function () {
             });
             qgDomParent.addClass('J_ButtonWaitWrap').data('ok',1);
 
-            let lingQuan = function (couldP,price) {
-                console.log('开始领券');
-                let storage = new Storage();
-                let activityId = storage.getItem('activityId'+id),startTime = new Date().getTime();
-                if (!activityId) activityId ={};
-                let count = 1, len = couldP.length -1,quanArr = [],maxIndex= 0,maxStarFee= 0;
-
-                let activityReg=/[?&](activityId|activity_id)=(\w+)/m;
-                let couponUrl = [];
-                $("a[href*='taoquan.taobao.com/coupon/unify_apply']").each((i,v)=>{
-                    console.log("店铺优惠券；连接");
-                    let aid = v.href.match(activityReg)[2];
-                    if (activityId && aid && activityId[aid]) {
-                        console.log("无须再领第",i,"张店铺优惠券领券");
-                    } else {
-                        activityId[aid] = 1;
-                        couponUrl.push(v.href);
-                    }
-                });
-                if (couponUrl.length>0) {
-                    chrome.extension.sendRequest({type: "lingquan", data:couponUrl});
-                }
-                couldP.each((i,v)=>{
-                    let o = $(v),aid = o.attr(isTaoBaoPage?'data-activityid':'data-activeid');
-                    console.log(aid);
-                    if(!isTaoBaoPage) {
-                        let starFee  = o.attr('data-c');
-                        if (starFee > maxStarFee && starFee <= price) {
-                            maxIndex = i;
-                            maxStarFee = starFee;
-                        }
-
-                    }
-                    if (activityId && aid && activityId[aid]) {
-                        console.log("无须再领第",i,"张优惠券领券");
-                    } else if(isTaoBaoPage){
-
-                        setTimeout(function () {
-                            activityId[aid] = 1;
-                           if (!isTaoBaoPage){
-                               o.mouseenter().find('.j_couldActVal').click();
-                           } else {
-                               o.mouseenter().click();
-                           }
-                            console.log("第",i,"张优惠券领券");
-                            if (len == i) {
-                                storage.setItem({
-                                    name:'activityId'+id,
-                                    value:activityId,
-                                    expires:86400000 * 3
-                                });
-
-                            }
-
-                        }, 2500 * count++);
-                    }
-                });
-
-                if (!isTaoBaoPage) {
-                    setTimeout(function () {
-                        let o = couldP.eq(maxIndex), aid = o.attr(isTaoBaoPage?'data-activityid':'data-activeid');
-                        activityId[aid] = 1;
-                        couldP.eq(maxIndex).mouseenter().find('.j_couldActVal').click();
-                        console.log("第",maxIndex,"张优惠券领券");
-                        storage.setItem({
-                            name:'activityId'+id,
-                            value:activityId,
-                            expires:86400000 * 3
-                        });
-
-                    }, 2500);
-                    showQuanTools([]);
-                }
-            };
-
-            let qgTool = $("#qg_tool");
-            let showQuanTools = function (quanArr) {
-                console.log("插入工具条");
-                let sysLqtxt = quanArr.length>0?'为您成功领取【<b>'+quanArr.length+'</b>】张':'';
-                let str = '<span class="qg-quan-p">'+sysLqtxt+' <a class="qg-quan">优惠券</a> <a href="javascript:;" id="qg_quan_more">更多 <i class="fa fa-caret-down"></i></a></span>';
-                qgTool.append(str);
-            };
-            //判断是否要登录了
-            if (!isTaoBaoPage) {
-                if ($("#login-info .sn-login").text() == '请登录') {
-                    chrome.storage.sync.get('tb_info', function(r) {
-                        if (r && r['tb_info'] && r['tb_info']['tb_username'] && r['tb_info']['tb_password']) {
-                            chrome.extension.sendRequest({type: "mustLogin"});
-                        }
-                    });
-                } else {
-                    var asset = null;
-                    var checkAsset = function() {
-                        asset = $(".mui-mbar-tab-asset");
-                        if (asset && asset.get(0)) {
-                            console.log('点击我的资产');
-                            asset.click();
-                            setTimeout(function (){
-                                lingQuan($(".j_mui-mbarp-asset-could-coupon a"),$(".tm-price").last().text()*1);
-                                asset.click();
-                            },1000);
-                        } else {
-                            console.log('继续调用检测我的资产');
-                            setTimeout(checkAsset, 1500);
-                        }
-                    }
-                    checkAsset();
-                }
-            } else {
-                if (!$(".site-nav-user .site-nav-login-info-nick ").text()) {
-                    chrome.storage.sync.get('tb_info', function(r) {
-                        if (r && r['tb_info'] && r['tb_info']['tb_username'] && r['tb_info']['tb_password']) {
-                            chrome.extension.sendRequest({type: "mustLogin"});
-                        }
-                    });
-                } else {
-                    console.log('淘宝领券');
-                    lingQuan($("a.J_coupon"), $("#J_StrPrice .tb-rmb-num").text() * 1);
-                }
-            }
             console.log("初始化成功！");
         },
         go : function (info) {
@@ -483,6 +494,16 @@ $(function () {
             console.log("重置系统时间this.info.systemTime",this.info.systemTime);
             this.timeDown();
             this.proof();
+        },
+        timestampToTime:function(timestamp,short) {
+            var date = new Date(timestamp);//时间戳为10位需*1000，时间戳为13位的话不需乘1000
+            Y = date.getFullYear() + '-';
+            M = (date.getMonth()+1 < 10 ? '0'+(date.getMonth()+1) : date.getMonth()+1) + '-';
+            D = date.getDate() + ' ';
+            h = date.getHours() + ':';
+            m = date.getMinutes() + ':';
+            s = date.getSeconds();
+            return short ? Y+M+D:Y+M+D+h+m+s;
         },
         // 时间倒计时
         timeDown : function () {
@@ -532,6 +553,16 @@ $(function () {
                     if (d.data.isLogin == 0) {
                         chrome.extension.sendRequest({type: "mustLogin"});
                     }
+                } else {
+                    //本办法判断是否要登录了
+                    if (!isTaoBaoPage &&$("#login-info .sn-login").text() == '请登录'
+                        || isTaoBaoPage && !$(".site-nav-user .site-nav-login-info-nick ").text()) {
+                        chrome.storage.sync.get('tb_info', function(r) {
+                            if (r && r['tb_info'] && r['tb_info']['tb_username'] && r['tb_info']['tb_password']) {
+                                chrome.extension.sendRequest({type: "mustLogin"});
+                            }
+                        });
+                    }
                 }
             });
         }
@@ -563,6 +594,7 @@ $(function () {
             console.log(countDown.info.systemTime - 60000, countDown.info.startTime,countDown.info.systemTime - 60000 > countDown.info.startTime);
             qgInfo['start_time'] = countDown.info.startTime;
             qgInfo['shop_id'] = countDown.info.shopId;
+            qgInfo['seller'] = sellerId;
             if(addQgList.propSelectFlag) {
                 return;
             }

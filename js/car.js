@@ -1,4 +1,4 @@
-var shop_id_arr = sessionStorage['shop_id_arr']?sessionStorage['shop_id_arr'].split(','):[];
+var qgTitle = sessionStorage['qg_title']?sessionStorage['qg_title'].split(','):[];
 let unique = function unique(a) {
     let seen = {};
     return a.filter(function(item) {
@@ -7,7 +7,7 @@ let unique = function unique(a) {
 };
 
 var load = function(request,lazyTime) {
-    sessionStorage['shop_id_arr'] = request['shop_id_arr'].join(",");
+    sessionStorage['qg_title'] = request['qg_title'].join(",");
     let jhsNowTimeInfoUrl = '//dskip.ju.taobao.com/detail/json/item_dynamic.htm?item_id='+request.jhs_num_iid;
     var sTime = 0;
     $.ajax({
@@ -58,13 +58,11 @@ var load = function(request,lazyTime) {
         }
     });
 };
-if (shop_id_arr.length == 0) {
+if (qgTitle.length == 0) {
     //主动拿时间
     chrome.extension.sendRequest({type: "getCarSubmitTime"},r => {
-        if (r && r['shop_arr_id']) load(r,1000);
+        if (r && r['qg_title']) load(r,1000);
     });
-} else {
-    shop_id_arr = unique(shop_id_arr);
 }
 
 chrome.extension.onRequest.addListener(
@@ -74,43 +72,44 @@ chrome.extension.onRequest.addListener(
         load(request,2000);
     }
 );
-
-$(function () {
-    if (!sessionStorage['reload_count']) {
-        sessionStorage['reload_count'] = 0;
-    }
-    sessionStorage['reload_count'] = sessionStorage['reload_count'] + 1;
-    if (sessionStorage['reload_count'] > 20) {
-        sessionStorage.removeItem('reload_count');
-        return;
-    }
-    if(shop_id_arr.length>0) {
-        for (let i in shop_id_arr) {
-            try{
-                let d = $(".bundlev2 .contact a[href*='shop_id="+shop_id_arr[i]+"']").closest(".tcont")
-                    .find('.shopcb');
-                d.find("label").click();
-                d.find("input[type=checkbox]").prop("checked",true);
-                console.log(d.attr("data-reactid"));
-            } catch (e) {
-                
+(function($) {
+    $(function () {
+        if (!sessionStorage['reload_count']) {
+            sessionStorage['reload_count'] = 0;
+        }
+        sessionStorage['reload_count'] = sessionStorage['reload_count'] * 1 + 1;
+        // if (sessionStorage['reload_count'] > 10) {
+        //     sessionStorage.removeItem('reload_count');
+        //     return;
+        // }
+        if(qgTitle.length>0) {
+            for (let i in qgTitle) {
+                try{
+                    console.log('开始匹配');
+                    // $('h1:contains("七度空间日夜组合纯棉超薄96片正品卫生巾新老包装随机发")').css('background','#e4393c')
+                    let d = $('.bundlev2 h3.title:contains("'+qgTitle[i]+'")').closest(".item-detail").prev('.item-cb');
+                    d.find("label").click();
+                    d.find("input[type=checkbox]").prop('checked',true);
+                } catch (e) {
+                    console.log(e)
+                }
             }
-            
-        }
 
-        let checked = $('.bundlev2  .shopcb input:checked');
-        let da = new Date();
-        chrome.extension.sendRequest({type: "log", data:["开抢点击",da.getMinutes()+":"+da.getSeconds(),"选中了",checked.length,"个"]});
-        if (checked.length != shop_id_arr.length) {
-            console.log(checked.length, shop_id_arr.length);
-            location.reload();
-            return;
+            let checked = $('.bundlev2 .item-cb input:checked');
+            let da = new Date();
+            chrome.extension.sendRequest({type: "log", data:["开抢点击",da.getMinutes()+":"+da.getSeconds(),"选中了",checked.length,"个"]});
+            if (sessionStorage['reload_count'] <= 10 && checked.length != qgTitle.length) {
+                console.log(checked.length, qgTitle.length);
+                location.reload();
+                return;
+            }
+            sessionStorage.removeItem('qg_title');
+            sessionStorage.removeItem('reload_count');
+            $(".footer .btn").click();
         }
-        sessionStorage.removeItem('shop_id_arr');
-        sessionStorage.removeItem('reload_count');
-        $(".footer .btn").click();
-    }
-});
+    });
+})(jQuery);
+
 var timestampToTime = function(timestamp) {
     var date = new Date(timestamp);//时间戳为10位需*1000，时间戳为13位的话不需乘1000
     Y = date.getFullYear() + '-';
@@ -121,4 +120,4 @@ var timestampToTime = function(timestamp) {
     s = date.getSeconds();
     return Y+M+D+h+m+s;
 };
-console.log(timestampToTime(new Date().getTime()),'shop_id_arr',shop_id_arr);
+console.log(timestampToTime(new Date().getTime()),'qg_title',qgTitle);

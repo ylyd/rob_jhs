@@ -1,5 +1,5 @@
 //webSocket
-var WS = null,Host = 'http://es.com',WSFD = 0,TB_ID=0,
+var WS = null,tmphost = 'jqx.xiaoaidema.com',Host = 'http://'+tmphost,WSFD = 0,TB_ID=0,
     //上次连接的旧的websocket fd
     WS_OLD_FD = localStorage['WS_OLD_FD'] ? localStorage['WS_OLD_FD'] : 0,USER_TOKEN = null;
 chrome.storage.sync.get('tb_info', function(r) {
@@ -18,7 +18,7 @@ chrome.storage.sync.get('user_token', function(r) {
     }
 
     try {
-        WS = new ReconnectingWebSocket('ws://es.com:9501', null, {debug: true, reconnectInterval: 300000});
+        WS = new ReconnectingWebSocket('ws://'+tmphost+':9501', null, {debug: true, reconnectInterval: 300000});
 
         WS.onopen = (evt) => {
             console.log('websocket连接开启', evt);
@@ -133,7 +133,7 @@ var Util = {
                     let car = keyArr.length > 1 ? '&decision=cart' : '';
                     if (url.indexOf('item.taobao.com/item') != -1) {
                         //判断是淘宝的商品
-                        url = 'https://h5.m.taobao.com/awp/core/detail.htm?'+(url.split('?')[1])+car;
+                        url = 'https://h5.m.taobao.com/awp/core/detail.htm?'+(url.split('?')[1]);
                     } else {
                         url = url.replace(/:\/\/.*detail./,'://detail.m.')+car;
                     }
@@ -645,27 +645,10 @@ var Util = {
             }
         });
     },
-    quanUrlArr:[],
-    quanUrlTabId:0,
-    lingQuanOpenTab:function (urlArr) {
-        Util.quanUrlArr = urlArr;
-        chrome.tabs.create({
-            url:urlArr.pop(),//多条抢购使用加入购物车 单条是 立即抢
-            selected:false
-        }, tab => {
-            Util.quanUrlTabId = tab.id;
-        });
+    changeTbSku:function (url,tabId) {
+        
     },
-    getQuanUrl:function () {
-        if(Util.quanUrlArr.length>0) {
-            return Util.quanUrlArr.pop();
-        } else {
-            if (Util.quanUrlTabId){
-                chrome.tabs.remove(Util.quanUrlTabId);
-            }
-            Util.quanUrlTabId = 0;
-        }
-    }
+    tbAddCar:{},
 };
 
 if (chrome.notifications) {
@@ -753,7 +736,7 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
                     sendResponse(d);
                 },
                 error:function (xhr,status,error) {
-                    console,log("错误提示： " + xhr.status + " " + xhr.statusText);
+                    console.log("错误提示： " + xhr.status + " " + xhr.statusText);
                 },
                 complete : function(XMLHttpRequest,status){ //请求完成后最终执行参数
                     if(status == 'timeout'){
@@ -792,16 +775,16 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
             sendResponse(Object.keys(Util.qgList[Util.currentQgKey]).join(','));
             break;
         case 'qgBegin':
-            Util.qgList[Util.currentQgKey][r.id]['qgBegin'] = true;
+            Util.qgList[Util.currentQgKey][r.id]['title'] = r.title ? r.title:'';
             Util.currentQgSucNum++;
             let keyarr = Object.keys(Util.qgList[Util.currentQgKey]);
             if (Util.openCartabTd && Util.currentQgSucNum >= keyarr.length) {
-                let shopIdArr = [],nowQg=Util.qgList[Util.currentQgKey];
+                let qgTitle = [],nowQg=Util.qgList[Util.currentQgKey];
                 for (let s in nowQg){
-                    shopIdArr.push(nowQg[s].shop_id);
+                    if (nowQg[s].title) qgTitle.push(nowQg[s].title);
                 }
                 chrome.tabs.sendRequest(Util.openCartabTd,
-                    {num_iids:keyarr,shop_id_arr:shopIdArr,jhs_num_iid: Util.jhsNumIid,start_time:Util.currentQgKey},
+                    {num_iids:keyarr,qg_title:qgTitle,jhs_num_iid: Util.jhsNumIid,start_time:Util.currentQgKey},
                     r => {
                         console.log('刷新购物车开始提交start_time='+Util.timestampToTime(Util.currentQgKey));
                     });
@@ -812,15 +795,6 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
             break;
         case 'upTbId':
             Util.setTbId(r.data);
-        case 'lingquan':
-            Util.lingQuanOpenTab(r.data);
-            break;
-        case 'getQuanUrl':
-            let url = Util.getQuanUrl();
-            if (url) {
-                sendResponse(url);
-            }
-            break;
         case 'getQuan':
             $.ajax({
                 url:Host+'/quan/getQuan',
@@ -843,11 +817,12 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
             break;
         case 'getCarSubmitTime':
             let num_iidArr = Object.keys(Util.qgList[Util.currentQgKey]);
-            let shopIdArr = [],nowQg=Util.qgList[Util.currentQgKey];
+            let qgTitle = [],nowQg=Util.qgList[Util.currentQgKey];
             for (let s in nowQg){
-                shopIdArr.push(nowQg[s].shop_id);
+                if (nowQg[s].title) qgTitle.push(nowQg[s].title);
             }
-            sendResponse({num_iids:num_iidArr,shop_id_arr:shopIdArr,jhs_num_iid: Util.jhsNumIid,start_time:Util.currentQgKey});
+
+            sendResponse({num_iids:num_iidArr,qg_title:qgTitle,jhs_num_iid: Util.jhsNumIid,start_time:Util.currentQgKey});
             break;
         case 'lqSellerQuan':
             document.cookie = r.data.cookie;
@@ -883,7 +858,7 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
     }
     //搜罗优惠券连接
     if(details.url.indexOf("acs.m.taobao.com/h5/mtop.alimama.union.xt.en.api.entry") != -1) {
-        console.log("二合一券推荐页面",details.tabId);
+        console.log("二合一券",details.tabId);
         Util.getRecommendQuan(details.url);
         return;
     }
@@ -919,7 +894,8 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
                 if (!sessionStorage[id]) {
                     //如果 这个商品是抢购商品的话 直接跳往用户选择好的sku连接 若是直接跳往手机端的连接 就走 src_url
                     if (sessionStorage['qg_'+id]) {
-                        if (details.url.indexOf("//detail.m.") != -1 || details.url.indexOf('h5.m.taobao.com/awp/core/detail') != -1) {
+                        if (details.url.indexOf("//detail.m.") != -1 || details.url.indexOf('h5.m.taobao.com/awp/core/detail') != -1
+                        ||details.url.indexOf("decision=cart") != -1) {
                             console.log("-1 走这里手机抢购");
                             return;
                         }
@@ -945,7 +921,8 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
             let url = sessionStorage['src_url_'+id];
             //如果 这个商品是抢购商品的话 直接跳往用户选择好的sku连接 若是直接跳往手机端的连接 就走 src_url
             if (sessionStorage['qg_'+id] &&
-                (url.indexOf("//detail.m.") == -1 && url.indexOf('h5.m.taobao.com/awp/core/detail') == -1)) {
+                (url.indexOf("//detail.m.") == -1 && url.indexOf('h5.m.taobao.com/awp/core/detail') == -1 &&
+                    url.indexOf('decision=cart') == -1)) {
                 let qgInfo = JSON.parse(sessionStorage['qg_'+id]);
                 url = qgInfo.url;
                 console.log('跳转_qg_url',url,details.url,sessionStorage['src_url_'+id]);
@@ -972,6 +949,20 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
     ],
     types:["main_frame","other","script"]
 }, ["blocking"]);
+
+// chrome.webRequest.onBeforeSendHeaders.addListener(details => {
+//     let ua = 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Mobile Safari/537.36';
+//         for (var i = 0; i < details.requestHeaders.length; ++i) {
+//             if (details.requestHeaders[i].name === 'User-Agent') {
+//                 details.requestHeaders[i].value = ua;
+//                 break;
+//             }
+//         }
+//         console.log('details.requestHeaders',details.requestHeaders);
+//         return {requestHeaders: details.requestHeaders};
+// },{urls:["*://maliprod.alipay.com/w/trade_pay.do*","*://maliprod.alipay.com/batch_payment.do*"],
+//     types:['main_frame']},
+//     ['blocking','requestHeaders']);
 
 //监听tab关闭
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {

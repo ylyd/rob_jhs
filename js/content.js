@@ -621,7 +621,7 @@ $(function () {
             }
             console.log(countDown.info.systemTime - 60000, countDown.info.startTime,countDown.info.systemTime - 60000 > countDown.info.startTime);
             qgInfo['start_time'] = countDown.info.startTime;
-            qgInfo['shop_id'] = countDown.info.shopId;
+            // qgInfo['shop_id'] = countDown.info.shopId;
             qgInfo['seller'] = sellerId;
             if(addQgList.propSelectFlag) {
                 return;

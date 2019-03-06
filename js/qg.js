@@ -53,6 +53,9 @@
                             if (systemTime - qgInfo.start_time > 60000) {
                                 return;
                             }
+                            if (!isTaoBaoPage) {
+                                $("#number").val(qgInfo.count).next('.increase').click();
+                            }
                             console.log("用时",eTime-sTime,"本地时间 -淘宝时间", timestampToTime(eTime),'-',timestampToTime(tbTime),eTime - tbTime,"timeout",timeout,"抢购时间是",timestampToTime(qgInfo.start_time));
                             setTimeout(function () {
                                 sTime = new Date().getTime();
@@ -66,6 +69,7 @@
                                         console.log("点击decision0");
                                         $("#J_juValid .tb-btn-add .J_LinkAdd").click();
                                     } else {
+                                        $("#number").prev('.decrease').click();
                                         console.log("点击decision1");
                                         title = $('.module-title .main').text();
                                         $(".widgets-cover .footer .ok p").click();

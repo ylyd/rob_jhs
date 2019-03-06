@@ -90,6 +90,9 @@ $(function () {
                             systemTime:systime *1 + (eTime-sTime),
                             shopId:d.data.seller.shopId
                         };
+                        if(qgInfo && qgInfo['start_time']) {
+                            info['startTime'] = qgInfo['start_time'];
+                        }
                         console.log('jhs2',info);
 
                         // 2.检查是否聚划算 可已抢购
@@ -101,6 +104,10 @@ $(function () {
                         if (info.systemTime < info.startTime) {
                             //显示抢购倒计时
                             setTimeout(function () {
+                                if (!$('#'+qgDomParentId).length) {
+                                    let tbAction = $(".tb-action");
+                                    tbAction.before('<div id="'+qgDomParentId+'" class="J_ButtonWaitWrap"></div>');
+                                }
                                 countDown.go(info);
                             },1000);
                         } else if(!isTaoBaoPage) {
@@ -621,6 +628,10 @@ $(function () {
             }
             console.log(countDown.info.systemTime - 60000, countDown.info.startTime,countDown.info.systemTime - 60000 > countDown.info.startTime);
             qgInfo['start_time'] = countDown.info.startTime;
+            if(!qgInfo['start_time']) {
+                layer.msg('您还未设置开抢时间，请设定后在点开抢！');
+                return;
+            }
             // qgInfo['shop_id'] = countDown.info.shopId;
             qgInfo['seller'] = sellerId;
             if(addQgList.propSelectFlag) {

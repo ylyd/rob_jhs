@@ -281,11 +281,13 @@ var Util = {
     arrayMin:function(arrs, now){
         let min = arrs[0];
         for(let i = 0; i < arrs.length; i++) {
-            if(arrs[i] > now && arrs[i] < min) {
-                min = arrs[i];
-            } else if(now - arrs[i] > 600000 ){
+            if(now - arrs[i] > 30000 ){
                 //删除已经过去10分钟的列表
                 delete Util.qgList[arrs[i]];
+                continue;
+            }
+            if(arrs[i] > now && arrs[i] < min) {
+                min = arrs[i];
             }
         }
         console.log("最小抢购时间",min , now,min - now);
@@ -381,7 +383,11 @@ var Util = {
                             Util.notice(d.data);
                         }
                         setTimeout(function () {
-                            chrome.tabs.remove(tabId);
+                            try {
+                                chrome.tabs.remove(tabId);
+                            } catch (e) {
+                                console.log('关闭tab失败');
+                            }
                         },10000);
 
                     });
@@ -761,7 +767,7 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
                 },
                 error:function (xhr,status,error) {
                     sendResponse(0);
-                    console,log("错误提示： " + xhr.status + " " + xhr.statusText);
+                    console.log("错误提示： " + xhr.status + " " + xhr.statusText);
                 },
                 complete : function(XMLHttpRequest,status){ //请求完成后最终执行参数
                     if(status == 'timeout'){
@@ -806,7 +812,7 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
                 },
                 error:function (xhr,status,error) {
                     sendResponse(0);
-                    console,log("错误提示： " + xhr.status + " " + xhr.statusText);
+                    console.log("错误提示： " + xhr.status + " " + xhr.statusText);
                 },
                 complete : function(XMLHttpRequest,status){ //请求完成后最终执行参数
                     if(status == 'timeout'){

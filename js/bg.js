@@ -887,7 +887,9 @@ chrome.webRequest.onBeforeRequest.addListener(details => {
         }
         //判断跳转详情页面时不是自己的pid 就替换掉
         if (details.url.indexOf('mm_119948269') == -1) {
-
+            if (details.initiator == 'https://s.click.taobao.com') {
+                return;
+            }
             if (sessionStorage['tab_'+id] && sessionStorage['tab_'+id] == details.tabId) {
                 console.log("刷新当前页操作");
                 //表示刷新当前页面 并且 已经跳转过高佣连接而来

@@ -10,7 +10,7 @@ if (skuId && skuId[1]) {
 } else {
     skuId = '';
 }
-//获取抢购的信息
+//获取拍单的信息
 var qgInfo = null;
 chrome.extension.sendRequest({type: "getLocalQgItemById", id:qgId}, function(r){
     if(r && r.info){
@@ -130,7 +130,7 @@ $(function () {
                             tbAction.before('<div id="'+qgDomParentId+'" class="J_ButtonWaitWrap"></div>');
 
                             if (qgInfo) {
-                                console.log("不是聚划算但是有抢购记录");
+                                console.log("不是聚划算但是有拍单记录");
                                 info['startTime'] = qgInfo.start_time;
                                 console.log('赋值');
                             }
@@ -166,25 +166,25 @@ $(function () {
                 return;
             }
             console.log("初始化html");console.log("初始化html");
-            qgDomParent.html('<div class="qg-l-box"><span class="qg-kq-txt"><i class="fa fa-clock-o"></i> 开抢：</span>' +
+            qgDomParent.html('<div class="qg-l-box"><span class="qg-kq-txt"><i class="fa fa-clock-o"></i> 开拍：</span>' +
                 '<span id="qg_down_time" ></span>' +
-                '<span id="qg_by_auto_time" title="您可以自定义抢购的时间进行抢购">自定义时间</span>'+
+                '<span id="qg_by_auto_time" title="您可以自定义开拍的时间进行拍单">自定义时间</span>'+
                 '<a id="qg_setting" title="使用前须知"><i class="fa fa-cogs"></i> 设置 & 帮助</a> ' +
                 '<form method="post" id="qg_form"><div class="qg-gzh"><img src="//qr.api.cli.im/qr?data=http%253A%252F%252Fxiaoaidema.com&level=H&transparent=false&bgcolor=%23ffffff&forecolor=%23000000&blockpixel=12&marginblock=1&logourl=&size=260&kid=cliim&key=a8b261387b9f090b0f6c0a1bc3f48ae6">' +
-                '<br> <b>聚抢先公众号</b></div> <input type="hidden" name="tb_id"><input type="hidden" name="area_id">' +
+                '<br> <b>聚抢鲜公众号</b></div> <input type="hidden" name="tb_id"><input type="hidden" name="area_id">' +
                 '<input type="hidden" name="address_id">' +
                 '<ul class="qg-frist-ul" data-for="prefix">' +
                 '      <li> <input type="password" name="pay_password" placeholder="输入支付密码" class="ppfix post key" /><span class="postfix key"></span></li>\n' +
-                '<li class="qg-form-info"><i class="fa fa-cny"></i> 抢单 <strong style="color: red">自动支付</strong> 时使用，插件绝不外泄，也不上传远程，并做加密保存 可放心填写。不填默认抢单成功后人工输入，但抢单成功率会降低。</li>'+
+                '<li class="qg-form-info"><i class="fa fa-cny"></i> 拍单 <strong style="color: red">自动支付</strong> 时使用，插件绝不外泄，也不上传远程，并做加密保存 可放心填写。不填默认拍下成功后人工输入，但拍下成功率会降低。</li>'+
                 '      <li> <input type="text" name="tb_username" placeholder="淘宝用户名" class="ppfix post user" /><span class="postfix user"></span></li>\n' +
                 '      <li> <input type="password" name="tb_password" placeholder="淘宝登录密码" class="ppfix post key" /><span class="postfix key"></span></li>\n' +
                 '<li class="qg-form-info" style="text-align: center;margin-top: 5px;"><a href="" target="_blank"> © 聚抢先官网</a></li>'+
-                '    </ul><ul class="qg-form-shuoming"><li><h6>抢购须知</h6></li>' +
-                '<li>1. 插件抢购时请提前登录淘宝账号，为了避免 无人值守时淘宝账号掉线，希望您能填写淘宝账号密码，以便插件帮你自动登录，提高抢购几率。</li>' +
-                '<li>2. 插件抢购在网络状况良好时，可以瞬间为您抢到宝贝。这时需要您立即付款以便抢到前<strong>n</strong> 名的优惠价格。您可以提前设置好支付密码以便插件自动付款，提高抢购几率。</li>' +
+                '    </ul><ul class="qg-form-shuoming"><li><h6>使用须知 <small style="color: red">插件只是定时下单工具，最多只支持拍下3件，请勿多拍！</small></h6></li>' +
+                '<li>1. 插件拍下时请提前登录淘宝账号，为了避免 无人值守时淘宝账号掉线，希望您能填写淘宝账号密码，以便插件帮你自动登录，提高抢购几率。</li>' +
+                '<li>2. 插件拍下在网络状况良好时，可以瞬间为您抢到宝贝。这时需要您立即付款以便拍下前<strong>n</strong> 名的优惠价格。您可以提前设置好支付密码以便插件自动付款，提高拍下几率。</li>' +
                 '<li>3. 插件不会泄露您的任何个人信息，所有信息加密处理。</li>' +
-                '<li>4. 插件会为您搜索最高优惠券【包括各种内部券】为您自动领取，走最优惠途径购买。</li>' +
-                '<li>5. 关注官方微信公众号，方便及时的知道您的抢购结果，随时随地 添加、取消抢购，还有机会领取各种购物红包。</li></ul></form></div><a id="kaiqiang_btn"></a> ' +
+                '<li>4. 插件会为您搜索最高优惠券【包括各种内部券】，走最优惠途径购买。</li>' +
+                '<li>5. 关注官方微信公众号，方便及时的知道您的拍单结果，随时随地 添加、取消操作，还有机会领取各种购物红包。</li></ul></form></div><a id="kaiqiang_btn"></a> ' +
                 '<a class="qg-quan" id="qg_quan" title="点开查看优惠券"><span class="txt">优惠券</span> <i class="fa fa-caret-down" title="更多"></i>' +
                 '</a><div id="qg_quan_list" class="qg-quan-list"><i class="qg-list-arrow"></i>' +
                 '<i class="qg-quan-load fa fa-spinner fa-spin" style="font-size: 30px;"></i>' +
@@ -399,7 +399,7 @@ $(function () {
                 callback:function(v,e){
                     console.log(v,countDown.info.systemTime,v * 1000,countDown.info.systemTime-v * 1000);
                     if (countDown.info.systemTime > v * 1000){
-                        layer.msg('你选择的开抢时间已经过去,请从新设定！');
+                        layer.msg('你选择的开拍时间已经过去,请从新设定！');
                         return;
                     }
 
@@ -412,28 +412,28 @@ $(function () {
             });
             countDown.kqBtn = qgDomParent.find("#kaiqiang_btn");
             qgDomParent.before('<div id="qg_info_alert" class="alert alert-danger">' +
-                '请在虚线框中选择好 <strong>属性</strong> 跟 <strong>够买数量</strong> 在继续加入抢购！</div>');
+                '请在虚线框中选择好 <strong>属性</strong> 跟 <strong>够买数量</strong> 在继续加入拍单！</div>');
             var qgInfoAlert = $("#qg_info_alert");
 
             if(qgInfo) {
-                countDown.kqBtn.text("取消定时抢购");
+                countDown.kqBtn.text("取消定时拍单");
             } else {
-                countDown.kqBtn.text("加入定时抢购");
+                countDown.kqBtn.text("加入定时拍单");
             }
             var prop = $(isTaoBaoPage?"#J_isku .J_TSaleProp":".tb-sku .tb-prop .J_TSaleProp");
             //按钮的响应样式 sku 的连接改变或者 够买的数量改变都会改变按钮的样式
             var changeQgAction = function(val){
                 if (qgInfo && (location.href != qgInfo.url || (val && val!=qgInfo.count))) {
-                    countDown.kqBtn.addClass('qg-red-btn').text("更新定时抢购");
+                    countDown.kqBtn.addClass('qg-red-btn').text("更新定时拍单");
                 } else {
-                    countDown.kqBtn.removeClass('qg-red-btn').text("加入定时抢购");
+                    countDown.kqBtn.removeClass('qg-red-btn').text("加入定时拍单");
                 }
             };
             //属性sku切换
             prop.on('click','li', function () {
                 let o = $(this);
                 if(!o.hasClass('tb-out-of-stock')) {
-                    //判断切换是否要更新已经保存的抢购信息
+                    //判断切换是否要更新已经保存的拍单信息
                     if (isTaoBaoPage) {
                         setTimeout(function () {
                             addQgList.getTbSkuUrl();
@@ -472,7 +472,7 @@ $(function () {
                     }
                     //可以点击
                     let txt = countDown.kqBtn.text();
-                    if (txt != "取消定时抢购") {
+                    if (txt != "取消定时拍单") {
                         //todo 跟bg.js通信 把商品信息传入 成功后改变文字
                         //检测sku是否全部选中
                         addQgList.propSelectFlag = false;
@@ -622,14 +622,18 @@ $(function () {
                 qgInfo.url= addQgList.getTbSkuUrl(qgInfo.url);
             }
             qgInfo.count = $(isTaoBaoPage ? "#J_IptAmount" : "#J_Amount"+" .mui-amount-input").val();
+            if (qgInfo.count > 3) {
+                layer.msg('插件最多只支持 拍下 3 件，您拍多了！请从新设定数量。');
+                return;
+            }
             if (countDown.info.systemTime - 60000 > countDown.info.startTime){
-                layer.msg('加入失败。开抢时间已经过去,请从新设定开抢时间！');
+                layer.msg('加入失败。拍单时间已经过去,请从新设定开拍时间！');
                 return;
             }
             console.log(countDown.info.systemTime - 60000, countDown.info.startTime,countDown.info.systemTime - 60000 > countDown.info.startTime);
             qgInfo['start_time'] = countDown.info.startTime;
             if(!qgInfo['start_time']) {
-                layer.msg('您还未设置开抢时间，请设定后在点开抢！');
+                layer.msg('您还未设置开拍时间，请设定后在点开拍！');
                 return;
             }
             // qgInfo['shop_id'] = countDown.info.shopId;
@@ -642,7 +646,7 @@ $(function () {
             chrome.extension.sendRequest({type: "addQgList", id:qgId,qgInfo:qgInfo,itemInfo:itemInfo}, function(r){
                 layer.close(index);
                 if(r.status == 1){
-                    countDown.kqBtn.removeClass('qg-red-btn').text("取消定时抢购");
+                    countDown.kqBtn.removeClass('qg-red-btn').text("取消定时拍单");
                     $("#J_ImgBooth").clone().appendTo('body').addClass('piaoyi')
                         .animate({
                         'top':0,
@@ -653,7 +657,7 @@ $(function () {
                     },'easeOutBounce',function () {
                         $(this).remove();
                     });
-                    layer.msg('恭喜你，加入定时抢购成功！');
+                    layer.msg('恭喜你，加入定时拍单成功！');
                 } else if(r.status == -1) {
                     //需要用户登录
                     layer.open({
@@ -693,8 +697,8 @@ $(function () {
             chrome.extension.sendRequest({type: "cancelQgList", id:qgId,startTime:countDown.info.startTime}, function(r){
                 layer.close(index);
                 if(r){
-                    countDown.kqBtn.text("加入定时抢购");
-                    layer.msg('成功取消本商品定时抢购！您可以随时加入定时抢购。');
+                    countDown.kqBtn.text("加入定时拍单");
+                    layer.msg('成功取消本商品定时拍单！您可以随时加入定时拍单。');
                 }
             });
         }

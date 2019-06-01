@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link href="https://cdn.bootcss.com/jquery-datetimepicker/2.5.20/jquery.datetimepicker.min.css" rel="stylesheet">
+</head>
+<body>
+
+1
+<input id="datetimepicker" type="text" >
+
+
+<script type="text/javascript" src="js/jquery.min.js" charset="utf-8"></script>
+<script src="https://cdn.bootcss.com/jquery-datetimepicker/2.5.20/jquery.datetimepicker.full.min.js"></script>
+<script>
+    $.datetimepicker.setLocale('ch');
+    $(function () {
+        $('#datetimepicker').datetimepicker({
+            value:1559357070000,
+            step:5,
+            lazyInit: false,
+            lang:'ch',
+            format:"Y-m-d h:i",      //格式化日期
+            onClose: function(dateText, inst) {
+
+                console.log(new Date(dateText).getTime(), inst);
+
+            }
+        });
+    });
+</script>
+</body>
+</html>

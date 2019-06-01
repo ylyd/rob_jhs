@@ -168,7 +168,7 @@ $(function () {
             console.log("初始化html");console.log("初始化html");
             qgDomParent.html('<div class="qg-l-box"><span class="qg-kq-txt"><i class="fa fa-clock-o"></i> 开拍：</span>' +
                 '<span id="qg_down_time" ></span>' +
-                '<span id="qg_by_auto_time" title="您可以自定义开拍的时间进行拍单">自定义时间</span>'+
+                '<input id="qg_by_auto_time" title="您可以自定义开拍的时间进行拍单" value="自定义时间">'+
                 '<a id="qg_setting" title="使用前须知"><i class="fa fa-cogs"></i> 设置 & 帮助</a> ' +
                 '<form method="post" id="qg_form"><div class="qg-gzh"><img src="//qr.api.cli.im/qr?data=http%253A%252F%252Fxiaoaidema.com&level=H&transparent=false&bgcolor=%23ffffff&forecolor=%23000000&blockpixel=12&marginblock=1&logourl=&size=260&kid=cliim&key=a8b261387b9f090b0f6c0a1bc3f48ae6">' +
                 '<br> <b>聚抢鲜公众号</b></div> <input type="hidden" name="tb_id"><input type="hidden" name="area_id">' +
@@ -389,27 +389,28 @@ $(function () {
             });
 
             countDown.downTimeDom = qgDomParent.find('#qg_down_time');
-            $('#qg_by_auto_time').ECalendar({
-                type:"time",   //模式，time: 带时间选择; date: 不带时间选择;
-                stamp : true,   //是否转成时间戳，默认true;
-                offset:[0,2],   //弹框手动偏移量;
-                format:"yyyy-mm-dd hh:ii",   //时间格式 默认 yyyy-mm-dd hh:ii;
-                skin:3,   //皮肤颜色，默认随机，可选值：0-8,或者直接标注颜色值;
-                step:5,   //选择时间分钟的精确度;
-                callback:function(v,e){
-                    console.log(v,countDown.info.systemTime,v * 1000,countDown.info.systemTime-v * 1000);
-                    if (countDown.info.systemTime > v * 1000){
+            $.datetimepicker.setLocale('ch');
+            $('#qg_by_auto_time').datetimepicker({
+                value: countDown.info.systemTime,
+                step:5,
+                lazyInit: false,
+                lang:'ch',
+                format:"Y-m-d h:i",      //格式化日期
+                onClose: function(dateText, inst) {
+                    let v = new Date(dateText).getTime();
+                    if (countDown.info.systemTime > v){
                         layer.msg('你选择的开拍时间已经过去,请从新设定！');
                         return;
                     }
 
-                    countDown.info.startTime = v * 1000;
+                    countDown.info.startTime = v;
                     if (qgInfo && qgInfo['url']) {
                         //相当于此处做修改处理
                         addQgList.add();
                     }
-                } //回调函数
+                }
             });
+
             countDown.kqBtn = qgDomParent.find("#kaiqiang_btn");
             qgDomParent.before('<div id="qg_info_alert" class="alert alert-danger">' +
                 '请在虚线框中选择好 <strong>属性</strong> 跟 <strong>够买数量</strong> 在继续加入拍单！</div>');

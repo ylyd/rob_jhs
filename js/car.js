@@ -34,7 +34,7 @@ var load = function(request,lazyTime) {
                     return Y+M+D+h+m+s;
                 };
                 // qgInfo.start_time = qgInfo.start_time*1 + 114*60*1000;
-                let timeout = Math.max(request.start_time - systemTime - lazyTime,1);
+                let timeout = Math.max(request.start_time - systemTime - lazyTime,100);
                 setTimeout(function () {
                     chrome.extension.sendRequest({type: "log", data:["刷新页面",timestampToTime(new Date().getTime())]});
                     location.reload();
@@ -61,7 +61,7 @@ var load = function(request,lazyTime) {
 if (qgTitle.length == 0) {
     //主动拿时间
     chrome.extension.sendRequest({type: "getCarSubmitTime"},r => {
-        if (r && r['qg_title']) load(r,1000);
+        if (r && r['qg_title']) load(r,4850);
     });
 }
 
@@ -69,7 +69,7 @@ chrome.extension.onRequest.addListener(
     (request, sender, sendResponse) => {
         //sendResponse({counter: request.counter + 1 });
         chrome.extension.sendRequest({type: "log", data:["收到事件 开始调用",request]});
-        load(request,2000);
+        load(request,4850);
     }
 );
 (function($) {

@@ -168,7 +168,7 @@ $(function () {
             console.log("初始化html");console.log("初始化html");
             qgDomParent.html('<div class="qg-l-box"><span class="qg-kq-txt"><i class="fa fa-clock-o"></i> 开拍：</span>' +
                 '<span id="qg_down_time" ></span>' +
-                '<input id="qg_by_auto_time" title="您可以自定义开拍的时间进行拍单" value="自定义时间">'+
+                '<input id="qg_by_auto_time" title="您可以自定义开拍的时间进行拍单" autocomplete="false" placeholder="自定义时间">'+
                 '<a id="qg_setting" title="使用前须知"><i class="fa fa-cogs"></i> 设置 & 帮助</a> ' +
                 '<form method="post" id="qg_form"><div class="qg-gzh"><img src="//qr.api.cli.im/qr?data=http%253A%252F%252Fxiaoaidema.com&level=H&transparent=false&bgcolor=%23ffffff&forecolor=%23000000&blockpixel=12&marginblock=1&logourl=&size=260&kid=cliim&key=a8b261387b9f090b0f6c0a1bc3f48ae6">' +
                 '<br> <b>聚抢鲜公众号</b></div> <input type="hidden" name="tb_id"><input type="hidden" name="area_id">' +
@@ -391,11 +391,11 @@ $(function () {
             countDown.downTimeDom = qgDomParent.find('#qg_down_time');
             $.datetimepicker.setLocale('ch');
             $('#qg_by_auto_time').datetimepicker({
-                value: countDown.info.systemTime,
-                step:5,
+                value: countDown.info && countDown.info.systemTime ? countDown.info.systemTime : new Date().getTime(),
+                step:1,
                 lazyInit: false,
                 lang:'ch',
-                format:"Y-m-d h:i",      //格式化日期
+                format:"Y-m-d H:i",      //格式化日期
                 onClose: function(dateText, inst) {
                     let v = new Date(dateText).getTime();
                     if (countDown.info.systemTime > v){

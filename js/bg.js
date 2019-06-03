@@ -228,10 +228,10 @@ var Util = {
             success:function (d,status,xhr) {
                 if (d && d.data) {
                     //登录淘宝 跟时间校验 有要抢的宝贝 且 当前时间<= 抢购时间 且 当前时间 >= 抢购时间-两（防止漏掉）个轮训时间
-                    let minStime = Util.arrayMin(qgKeyArr,d.data.time);
+                    let minStime = Util.arrayMin(qgKeyArr, d.data.time);
                     if (!minStime) {
                         //代表没有可以抢购的东西[超时 列表空都是这种情况]
-                        console.log("没有可以抢购的",minStime);
+                        console.log("没有可以抢购的", minStime);
                         Util.startCheckQgList = 0;
                         return;
                     }
@@ -280,6 +280,7 @@ var Util = {
     },
     arrayMin:function(arrs, now){
         let min = arrs[0];
+        console.log("arrayMin", arrs,now)
         for(let i = 0; i < arrs.length; i++) {
             if(now - arrs[i] > 30000 ){
                 //删除已经过去10分钟的列表

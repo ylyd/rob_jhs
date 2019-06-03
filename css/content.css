@@ -177,7 +177,7 @@
 #qg_form .qg-form-shuoming li{line-height: 25px;color: #666666;}
 .qg-gzh{float: right;width: 230px;height: 230px;    margin-right: 39px; text-align: center;color: #280;}
 
-#qg_by_auto_time{color: #280;font-weight: bold;cursor: pointer;text-decoration:none;margin-left: 10px;     padding-right: 20px;}
+#qg_by_auto_time{color: #280;font-weight: bold;cursor: pointer;text-decoration:none;margin-left: 10px; width: 120px;}
 .qg-quan{    background: #fffaf9;
     border: 1px solid #ff8f82;float: right;
     font-size: 12px;

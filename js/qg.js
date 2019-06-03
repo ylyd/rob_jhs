@@ -35,7 +35,7 @@
                             let tbTime = d.data.time*1;
                             systemTime = tbTime + 2;
                             let isCar = qgUrl.indexOf('decision=cart') != -1;
-                            let timeArr = isCar ? [3000,6000,9000,10000,15000] : [3000,2500,2000];
+                            let timeArr = isCar ? [5000,6000,9000,10000,15000] : [2850,2900];
                             let index = Math.floor(Math.random()*timeArr.length);
 
                             var timestampToTime = function(timestamp) {
@@ -56,7 +56,10 @@
                             if (!isTaoBaoPage) {
                                 $("#number").val(qgInfo.count).next('.increase').click();
                             }
-                            console.log("用时",eTime-sTime,"本地时间 -淘宝时间", timestampToTime(eTime),'-',timestampToTime(tbTime),eTime - tbTime,"timeout",timeout,"抢购时间是",timestampToTime(qgInfo.start_time));
+                            console.log(
+                                "用时",eTime-sTime,
+                                "本地时间 -淘宝时间", timestampToTime(eTime),'-',timestampToTime(tbTime),
+                                eTime - tbTime,"timeout",timeout,"抢购时间是",timestampToTime(qgInfo.start_time));
                             setTimeout(function () {
                                 sTime = new Date().getTime();
                                 console.log("触发时间是",timestampToTime(sTime));

@@ -1,5 +1,5 @@
 //webSocket
-var WS = null,tmphost = 'es.com',Host = 'http://'+tmphost,WSFD = 0,TB_ID=0,
+var WS = null,tmphost = 'jqx.xiaoaidema.com',Host = 'http://'+tmphost,WSFD = 0,TB_ID=0,
     //上次连接的旧的websocket fd
     WS_OLD_FD = localStorage['WS_OLD_FD'] ? localStorage['WS_OLD_FD'] : 0,USER_TOKEN = null;
 chrome.storage.sync.get('tb_info', function(r) {

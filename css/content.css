@@ -190,7 +190,9 @@
     padding: 5px 5px 5px 10px;
     top: 8px;
 }
-
+#page #content .tm-detail-meta#J_DetailMeta{
+    z-index: 9;}
+#detail{z-index: 0 !important;}
 .qg-quan:hover{text-decoration:none;}
 .qg-quan span.txt{
     display: inline-block;padding-right:5px;

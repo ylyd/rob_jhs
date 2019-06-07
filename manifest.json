@@ -24,7 +24,7 @@
         "*://detail.tmall.com/*","*://chaoshi.detail.tmall.com/*","*://item.taobao.com/item.htm*","*://detail.tmall.hk/*"
       ],
       "css": ["css/content.css","css/minippfix.css","css/jquery.datetimepicker.min.css"],
-      "js": ["js/jquery.min.js","js/layer/layer.js","js/wxLogin.js","js/storage.js","js/jquery.datetimepicker.full.min.js","js/content.js"]
+      "js": ["js/jquery.js","js/jquery.datetimepicker.full.min.js","js/layer/layer.js","js/wxLogin.js","js/storage.js","js/content.js"]
     },
     {
       "matches": [

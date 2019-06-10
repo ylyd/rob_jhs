@@ -850,6 +850,31 @@ chrome.extension.onRequest.addListener(function(r, sender, sendResponse){
                 }
             });
             break;
+        case 'getJhsTime':
+            let jhsNowTimeInfoUrl = 'https://dskip.ju.taobao.com/detail/json/item_dynamic.htm?item_id='+r.data;
+            let load = () => {
+                $.ajax({
+                    url:jhsNowTimeInfoUrl,
+                    dataType:'json',
+                    success(d,status,xhr) {
+                        sendResponse(d);
+                    },
+                    error(xhr,status,error) {
+                        console.log("错误提示： " + xhr.status + " " + xhr.statusText,status,error);
+                        load();
+                    },
+                    complete(XMLHttpRequest,status){ //请求完成后最终执行参数
+
+                        if(status == 'timeout'){
+                            console.log("请求超时，请稍后再试！",'','error');
+                        }
+
+                    }
+                });
+            };
+            load();
+
+            break;
         default:
             break;
     }

@@ -21,7 +21,7 @@ chrome.extension.sendRequest({type: "getLocalQgItemById", id:qgId}, function(r){
         console.log(systemTime  , qgInfo.startTime,systemTime  - qgInfo.startTime);
         var checkQg = function () {
             //如果抢购开始
-            if (systemTime  >= qgInfo.startTime - 2850) {
+            if (systemTime  >= qgInfo.startTime - 2800) {
                 if (qgUrl.indexOf('decision=cart') != -1) {
                     //淘宝的加入购物车
                     if (qgUrl.indexOf('h5.m.taobao.com') != -1) {

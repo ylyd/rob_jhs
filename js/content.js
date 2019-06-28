@@ -392,7 +392,7 @@ $(function () {
             $.datetimepicker.setLocale('ch');
             $('#qg_by_auto_time').datetimepicker({
                 value: countDown.info && countDown.info.systemTime ? countDown.info.systemTime : new Date().getTime(),
-                step:10,
+                step:5,
                 lazyInit: false,
                 lang:'ch',
                 format:"Y-m-d H:i",      //格式化日期

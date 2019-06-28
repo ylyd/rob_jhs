@@ -1,5 +1,5 @@
 {"name": "聚抢鲜",
-"version": "2.6",
+"version": "2.7",
 "manifest_version":2,
 "icons": { "48": "icon48.png" },
 "background" : {

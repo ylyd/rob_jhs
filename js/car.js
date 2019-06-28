@@ -43,7 +43,7 @@ var load = function(request,lazyTime) {
 if (qgTitle.length == 0) {
     //主动拿时间
     chrome.extension.sendRequest({type: "getCarSubmitTime"},r => {
-        if (r && r['qg_title']) load(r,4850);
+        if (r && r['qg_title']) load(r,3750);
     });
 }
 
@@ -51,7 +51,7 @@ chrome.extension.onRequest.addListener(
     (request, sender, sendResponse) => {
         //sendResponse({counter: request.counter + 1 });
         chrome.extension.sendRequest({type: "log", data:["收到事件 开始调用",request]});
-        load(request,4850);
+        load(request,3750);
     }
 );
 (function($) {

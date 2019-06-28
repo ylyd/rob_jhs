@@ -1,4 +1,3 @@
-;
 chrome.storage.sync.get('tb_info', function(r) {
     if(r && r['tb_info']) {
         r = r['tb_info'];
@@ -8,6 +7,10 @@ chrome.storage.sync.get('tb_info', function(r) {
             return;
         }
         let elObj = document.getElementById('spwd_unencrypt');
+        console.log(elObj);
+        if (!elObj) {
+            elObj = document.getElementById('pwd_unencrypt');
+        }
 
         let Podium = {};
         Podium.keyup = function(k) {
@@ -54,6 +57,6 @@ chrome.storage.sync.get('tb_info', function(r) {
     }
 });
 $(function () {
-    $("#cashierPreConfirm button.am-button").click();
+    $("button.am-button").click();
     console.log("触发了点击")
 });
